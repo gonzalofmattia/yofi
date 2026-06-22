@@ -4,30 +4,105 @@ require_once __DIR__ . '/../include/includes.php';
 require_once __DIR__ . '/../check_session.php';
 
 $pageTitle = 'Talles';
-$result = mysqli_query($con, 'SELECT id_talle, nombre, orden, activo FROM tbl_talles ORDER BY orden, nombre');
+$q = trim((string)($_GET['q'] ?? ''));
+$adminSearchAction = 'listado.php';
+$adminSearchQuery = $q;
+$adminSearchPlaceholder = 'Buscar talles…';
+
+$sql = 'SELECT id_talle, nombre, orden, activo FROM tbl_talles';
+$params = [];
+$types = '';
+if ($q !== '') {
+    $sql .= ' WHERE nombre LIKE ?';
+    $like = '%' . $q . '%';
+    $params = [$like];
+    $types = 's';
+}
+$sql .= ' ORDER BY orden, nombre';
+
+if ($types !== '') {
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, $types, ...$params);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+} else {
+    $result = mysqli_query($con, $sql);
+}
+
+$rows = [];
+while ($row = mysqli_fetch_assoc($result)) {
+    $rows[] = $row;
+}
+$total = count($rows);
 
 include __DIR__ . '/../header.php';
 ?>
 
-<div class="card shadow-sm border-0">
-    <div class="card-header card-header-yofi d-flex justify-content-between">
-        <strong>Talles</strong>
-        <a href="a_talle.php" class="btn btn-light btn-sm">Nuevo</a>
+<div class="admin-section-header">
+    <div>
+        <h1>Talles</h1>
+        <p class="subtitle"><?= (int)$total ?> talle<?= $total === 1 ? '' : 's' ?><?= $q !== '' ? ' encontrados' : ' configurados' ?></p>
     </div>
-    <div class="card-body p-0">
-        <table class="table mb-0">
-            <thead><tr><th>Nombre</th><th>Orden</th><th>Activo</th><th></th></tr></thead>
-            <tbody>
-            <?php while ($row = mysqli_fetch_assoc($result)): ?>
-                <tr>
-                    <td><?= htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
-                    <td><?= (int)$row['orden'] ?></td>
-                    <td><?= (int)$row['activo'] ? 'Sí' : 'No' ?></td>
-                    <td class="text-end"><a href="a_talle.php?id=<?= (int)$row['id_talle'] ?>" class="btn btn-sm btn-outline-primary">Editar</a></td>
-                </tr>
-            <?php endwhile; ?>
-            </tbody>
-        </table>
+    <div class="admin-section-actions">
+        <a href="a_talle.php" class="btn btn-ink">
+            <i class="bi bi-plus-lg"></i> Nuevo talle
+        </a>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3 gap-3 flex-wrap">
+    <form method="get" action="listado.php" class="admin-search-bar flex-grow-1" style="max-width:360px">
+        <i class="bi bi-search"></i>
+        <input name="q" placeholder="Buscar por nombre…" type="search" value="<?= htmlspecialchars($q, ENT_QUOTES, 'UTF-8') ?>">
+    </form>
+    <?php if ($q !== ''): ?>
+    <a href="listado.php" class="btn btn-sm btn-outline-ink">Limpiar búsqueda</a>
+    <?php endif; ?>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-body p-0">
+        <div class="table-responsive">
+            <table class="admin-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Orden</th>
+                        <th>Estado</th>
+                        <th style="width:48px"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if ($total > 0): ?>
+                    <?php foreach ($rows as $row): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td><?= (int)$row['orden'] ?></td>
+                            <td>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input toggle-estado" type="checkbox"
+                                           data-endpoint="<?= htmlspecialchars(app_path('admin/api/toggle-talle-activo.php'), ENT_QUOTES, 'UTF-8') ?>"
+                                           data-id-key="id_talle"
+                                           data-id="<?= (int)$row['id_talle'] ?>"
+                                           aria-label="Talle <?= (int)$row['activo'] ? 'activo' : 'inactivo' ?>"
+                                           <?= (int)$row['activo'] ? 'checked' : '' ?>>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="admin-table-actions">
+                                    <a href="a_talle.php?id=<?= (int)$row['id_talle'] ?>" class="btn-table-action" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr><td colspan="4" class="text-center text-muted py-5"><?= $q !== '' ? 'Sin resultados para esta búsqueda' : 'Sin talles' ?></td></tr>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

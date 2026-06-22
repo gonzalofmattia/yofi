@@ -526,6 +526,48 @@ body.admin-body {
     border-bottom: none;
 }
 
+.admin-table-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.btn-table-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: var(--yofi-radius-md);
+    color: var(--yofi-ink);
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 0.9375rem;
+}
+
+.btn-table-action:hover {
+    background: var(--yofi-muted-bg);
+    color: var(--yofi-ink);
+}
+
+.btn-table-action-danger,
+.btn-table-action-danger:hover {
+    color: var(--yofi-terracotta);
+}
+
+.admin-table .form-switch {
+    padding-left: 2.5em;
+    min-height: 1.5rem;
+}
+
+.admin-table .form-switch .form-check-input {
+    cursor: pointer;
+}
+
 .product-cell-link {
     display: flex;
     align-items: center;

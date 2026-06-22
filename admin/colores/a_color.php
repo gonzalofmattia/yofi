@@ -38,16 +38,34 @@ if (isset($_POST['envio'])) {
 include __DIR__ . '/../header.php';
 ?>
 
-<div class="card shadow-sm border-0">
-    <div class="card-body">
+<div class="admin-section-header">
+    <div>
+        <h1><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></h1>
+        <p class="subtitle"><?= $id_color > 0 ? 'Modificá el color del catálogo' : 'Agregá un nuevo color al catálogo' ?></p>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-body">
         <form method="post">
             <?= admin_csrf_field() ?>
             <input type="hidden" name="envio" value="1">
-            <div class="mb-3"><label class="form-label">Nombre</label><input type="text" name="nombre" class="form-control" required value="<?= htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8') ?>"></div>
-            <div class="mb-3"><label class="form-label">Hex</label><input type="color" name="hex_code" class="form-control form-control-color" value="<?= htmlspecialchars($row['hex_code'], ENT_QUOTES, 'UTF-8') ?>"></div>
-            <div class="form-check mb-3"><input class="form-check-input" type="checkbox" name="activo" <?= (int)$row['activo'] ? 'checked' : '' ?>><label>Activo</label></div>
-            <button type="submit" class="btn btn-yofi">Guardar</button>
-            <a href="listado.php" class="btn btn-outline-secondary">Volver</a>
+            <div class="mb-3">
+                <label class="form-label">Nombre</label>
+                <input type="text" name="nombre" class="form-control" required value="<?= htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8') ?>">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Hex</label>
+                <input type="color" name="hex_code" class="form-control form-control-color" value="<?= htmlspecialchars($row['hex_code'], ENT_QUOTES, 'UTF-8') ?>">
+            </div>
+            <div class="form-check form-switch mb-4">
+                <input class="form-check-input" type="checkbox" name="activo" id="activo" <?= (int)$row['activo'] ? 'checked' : '' ?>>
+                <label class="form-check-label" for="activo">Activo</label>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-ink">Guardar</button>
+                <a href="listado.php" class="btn btn-outline-ink">Volver</a>
+            </div>
         </form>
     </div>
 </div>

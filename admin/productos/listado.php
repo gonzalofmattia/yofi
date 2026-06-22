@@ -5,19 +5,15 @@ require_once __DIR__ . '/../check_session.php';
 
 const ADMIN_STOCK_BAJO = 10;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['palabra'])) {
-    $estadoTab = trim((string)($_POST['estado_tab'] ?? ''));
-    $qs = 'q=' . urlencode(trim((string)$_POST['palabra']));
-    if ($estadoTab !== '') {
-        $qs .= '&estado=' . urlencode($estadoTab);
-    }
-    header('Location: listado.php?' . $qs);
-    exit();
-}
-
 $pageTitle = 'Productos';
 $q = trim((string)($_GET['q'] ?? ''));
 $estadoTab = trim((string)($_GET['estado'] ?? ''));
+$adminSearchAction = 'listado.php';
+$adminSearchQuery = $q;
+$adminSearchPlaceholder = 'Buscar por nombre o código…';
+$adminSearchHidden = $estadoTab !== ''
+    ? '<input type="hidden" name="estado" value="' . htmlspecialchars($estadoTab, ENT_QUOTES, 'UTF-8') . '">'
+    : '';
 $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 20;
 $offset = ($page - 1) * $perPage;
@@ -130,11 +126,12 @@ echo borrado($_GET['borrado'] ?? '', '', 'producto');
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3 gap-3 flex-wrap" id="listToolbar">
-    <form method="post" action="listado.php" class="admin-search-bar flex-grow-1" style="max-width:360px">
-        <?= admin_csrf_field() ?>
-        <input type="hidden" name="estado_tab" value="<?= htmlspecialchars($estadoTab, ENT_QUOTES, 'UTF-8') ?>">
+    <form method="get" action="listado.php" class="admin-search-bar flex-grow-1" style="max-width:360px">
+        <?php if ($estadoTab !== ''): ?>
+        <input type="hidden" name="estado" value="<?= htmlspecialchars($estadoTab, ENT_QUOTES, 'UTF-8') ?>">
+        <?php endif; ?>
         <i class="bi bi-search"></i>
-        <input name="palabra" placeholder="Buscar por nombre o código…" type="search" value="<?= htmlspecialchars($q, ENT_QUOTES, 'UTF-8') ?>">
+        <input name="q" placeholder="Buscar por nombre o código…" type="search" value="<?= htmlspecialchars($q, ENT_QUOTES, 'UTF-8') ?>">
     </form>
     <?php if ($q !== ''): ?>
     <a href="<?= htmlspecialchars(listado_tab_url($estadoTab, ''), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-ink">Limpiar búsqueda</a>

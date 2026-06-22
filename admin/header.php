@@ -13,6 +13,9 @@
 <?php
 $adminUser = (string)($_SESSION['idUsuarioAdminSUser'] ?? 'Admin');
 $adminInitials = admin_user_initials($adminUser);
+$adminSearchAction = $adminSearchAction ?? app_path('admin/productos/listado.php');
+$adminSearchQuery = $adminSearchQuery ?? '';
+$adminSearchPlaceholder = $adminSearchPlaceholder ?? 'Buscar productos…';
 include __DIR__ . '/include/sidebar.php';
 ?>
 <header class="admin-topbar">
@@ -23,10 +26,13 @@ include __DIR__ . '/include/sidebar.php';
         <img src="<?= asset_path('img/logo-yofi.png') ?>" alt="Yofi" height="24">
         <span>Yofi Admin</span>
     </a>
-    <div class="admin-topbar-search">
+    <form method="get" action="<?= htmlspecialchars($adminSearchAction, ENT_QUOTES, 'UTF-8') ?>" class="admin-topbar-search" role="search">
         <i class="bi bi-search"></i>
-        <input type="search" placeholder="Buscar pedidos, productos…" disabled aria-label="Buscador (próximamente)">
-    </div>
+        <input type="search" name="q" id="adminGlobalSearch" placeholder="<?= htmlspecialchars($adminSearchPlaceholder, ENT_QUOTES, 'UTF-8') ?>" value="<?= htmlspecialchars($adminSearchQuery, ENT_QUOTES, 'UTF-8') ?>" aria-label="Buscar">
+        <?php if (!empty($adminSearchHidden)): ?>
+            <?= $adminSearchHidden ?>
+        <?php endif; ?>
+    </form>
     <div class="admin-topbar-actions">
         <a href="<?= htmlspecialchars(app_path('index.php'), ENT_QUOTES, 'UTF-8') ?>" class="admin-topbar-link" target="_blank" rel="noopener">
             <i class="bi bi-box-arrow-up-right"></i> Ver tienda
