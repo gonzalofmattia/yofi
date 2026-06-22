@@ -47,6 +47,17 @@ function nav_active_dir(string $dir, string $currentPath): string
             <i class="bi bi-people"></i> Clientes
         </a>
 
+        <div class="nav-section">Contenido</div>
+        <a class="nav-link<?= nav_active('slider.php', $currentScript) ?><?= nav_active('a_slide.php', $currentScript) ?>" href="<?= app_path('admin/slider.php') ?>">
+            <i class="bi bi-images"></i> Slider del home
+        </a>
+        <a class="nav-link<?= nav_active('banners.php', $currentScript) ?><?= nav_active('a_banner.php', $currentScript) ?>" href="<?= app_path('admin/banners.php') ?>">
+            <i class="bi bi-badge-ad"></i> Banners
+        </a>
+        <a class="nav-link<?= nav_active('empresa.php', $currentScript) ?>" href="<?= app_path('admin/empresa.php') ?>">
+            <i class="bi bi-building"></i> Datos de empresa
+        </a>
+
         <div class="nav-section">Sistema</div>
         <a class="nav-link<?= nav_active('configuracion_envios.php', $currentScript) ?>" href="<?= app_path('admin/configuracion_envios.php') ?>">
             <i class="bi bi-truck"></i> Envíos

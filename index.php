@@ -15,6 +15,10 @@ $allowed_pages = [
     'login',
     'registro',
     'mi-cuenta',
+    'preguntas-frecuentes',
+    'envios-devoluciones',
+    'guia-talles',
+    'contacto',
 ];
 
 if (!in_array($page, $allowed_pages, true)) {

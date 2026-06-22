@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/php/products.php';
+require_once __DIR__ . '/../src/php/content.php';
 
 $page_title = SITE_NAME . ' — Nueva colección Otoño Invierno 2025';
 $meta_description = 'Yofi: ropa romántica para chicos y chicas. Nueva colección Otoño Invierno 2025. Envío a todo el país, cuotas sin interés.';
@@ -26,42 +27,85 @@ $fallbackCards = [
     ['label' => 'Pantalones', 'slug' => 'pantalones'],
     ['label' => 'Remeras', 'slug' => 'remeras'],
 ];
+
+$heroSlides = get_active_slides();
+$heroSlideCount = count($heroSlides);
+$homeBanners = get_active_banners('home_secundario');
+$homeBannerCount = count($homeBanners);
 ?>
 
 <!-- Hero -->
+<?php if ($heroSlideCount > 0): ?>
+<section
+    class="relative w-full h-[88vh] md:h-[92vh] overflow-hidden bg-cream"
+    data-component="hero-slider"
+    aria-label="Galería principal"
+    <?= $heroSlideCount > 1 ? 'data-autoplay="6000"' : '' ?>
+>
+    <div class="relative h-full w-full">
+        <?php foreach ($heroSlides as $i => $slide): ?>
+        <?php
+            $slideHref = content_resolve_url(isset($slide['link_url']) ? (string)$slide['link_url'] : null);
+            $slideImg = imgprod_path((string)$slide['imagen']);
+        ?>
+        <div
+            class="hero-slider-slide absolute inset-0 transition-opacity duration-700 ease-in-out <?= $i === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none' ?>"
+            data-slide-index="<?= (int)$i ?>"
+            aria-hidden="<?= $i === 0 ? 'false' : 'true' ?>"
+        >
+            <?php if ($slideHref !== ''): ?>
+            <a href="<?= htmlspecialchars($slideHref, ENT_QUOTES, 'UTF-8') ?>" class="block h-full w-full">
+            <?php endif; ?>
+                <img
+                    src="<?= htmlspecialchars($slideImg, ENT_QUOTES, 'UTF-8') ?>"
+                    alt=""
+                    class="h-full w-full object-cover"
+                    <?= $i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' ?>
+                >
+            <?php if ($slideHref !== ''): ?>
+            </a>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+
+    <?php if ($heroSlideCount > 1): ?>
+    <button
+        type="button"
+        class="hero-slider-prev absolute left-4 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-dark shadow hover:bg-white transition"
+        aria-label="Slide anterior"
+    >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <button
+        type="button"
+        class="hero-slider-next absolute right-4 top-1/2 -translate-y-1/2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white/80 text-dark shadow hover:bg-white transition"
+        aria-label="Slide siguiente"
+    >
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </button>
+    <div class="hero-slider-dots absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+        <?php for ($d = 0; $d < $heroSlideCount; $d++): ?>
+        <button
+            type="button"
+            class="hero-slider-dot h-2.5 w-2.5 rounded-full transition <?= $d === 0 ? 'bg-white scale-110' : 'bg-white/50 hover:bg-white/80' ?>"
+            data-slide-to="<?= $d ?>"
+            aria-label="Ir al slide <?= $d + 1 ?>"
+            aria-current="<?= $d === 0 ? 'true' : 'false' ?>"
+        ></button>
+        <?php endfor; ?>
+    </div>
+    <?php endif; ?>
+</section>
+<?php else: ?>
 <section class="relative w-full h-[88vh] md:h-[92vh] overflow-hidden bg-cream">
     <img
-        src="<?php echo htmlspecialchars(imgprod_path('hero-principal.jpg'), ENT_QUOTES, 'UTF-8'); ?>"
-        alt="Nueva colección Otoño Invierno"
+        src="<?= htmlspecialchars(imgprod_path('hero-principal.jpg'), ENT_QUOTES, 'UTF-8') ?>"
+        alt=""
         class="absolute inset-0 h-full w-full object-cover"
     >
-    <div class="absolute inset-0 bg-gradient-to-r from-white/85 via-white/40 to-transparent"></div>
-    <div class="relative z-10 h-full flex items-center px-6 sm:px-16 lg:px-24">
-        <div class="max-w-xl">
-            <p class="uppercase tracking-[0.18em] text-xs font-semibold text-earth mb-4">Nueva colección</p>
-            <h1 class="text-5xl sm:text-6xl lg:text-7xl font-extrabold leading-[0.95] text-dark">
-                Otoño<br>Invierno<br><span class="text-accent">2025</span>
-            </h1>
-            <p class="mt-6 text-base sm:text-lg text-dark/80 max-w-md">
-                Prendas románticas, suaves y resistentes, pensadas para acompañar a tus chicos cada día.
-            </p>
-            <div class="mt-8 flex flex-wrap gap-3">
-                <a
-                    href="<?php echo page_path('catalogo'); ?>&categoria=novedades"
-                    class="inline-flex items-center justify-center h-12 px-7 rounded-full bg-primary text-dark font-bold text-sm tracking-wide hover:brightness-95 transition"
-                >
-                    Ver colección
-                </a>
-                <a
-                    href="<?php echo page_path('catalogo'); ?>"
-                    class="inline-flex items-center justify-center h-12 px-7 rounded-full border-2 border-dark text-dark font-bold text-sm tracking-wide hover:bg-dark hover:text-white transition"
-                >
-                    Ver todo
-                </a>
-            </div>
-        </div>
-    </div>
 </section>
+<?php endif; ?>
 
 <!-- Benefits strip -->
 <section class="bg-dark text-white">
@@ -73,11 +117,12 @@ $fallbackCards = [
                 <p class="text-xs text-white/60 leading-tight">en locales de CABA y BA</p>
             </div>
         </div>
+        <?php $homeFreeShipping = free_shipping_threshold(); ?>
         <div class="flex items-center gap-3 justify-center md:justify-start">
             <svg class="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10m10 0h4l3-3V9a1 1 0 00-1-1h-4m-4 0V6a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>
             <div class="min-w-0">
                 <p class="text-sm font-bold leading-tight">Envío gratis</p>
-                <p class="text-xs text-white/60 leading-tight">en compras desde $80.000</p>
+                <p class="text-xs text-white/60 leading-tight"><?= $homeFreeShipping > 0 ? 'en compras desde ' . htmlspecialchars(format_money_ars($homeFreeShipping), ENT_QUOTES, 'UTF-8') : 'consultá condiciones en el checkout' ?></p>
             </div>
         </div>
         <div class="flex items-center gap-3 justify-center md:justify-start">
@@ -124,27 +169,94 @@ $fallbackCards = [
 </section>
 
 <!-- Campaign banner -->
-<section class="relative w-full aspect-[16/9] md:aspect-[16/5] overflow-hidden bg-cream">
-    <img
-        src="<?php echo htmlspecialchars(imgprod_path('banner-3x2.jpg'), ENT_QUOTES, 'UTF-8'); ?>"
-        alt="3x2 en seleccionados"
-        class="absolute inset-0 h-full w-full object-cover"
-    >
-    <div class="absolute inset-0 bg-gradient-to-r from-black/40 via-black/10 to-black/40"></div>
-    <div class="relative z-10 h-full flex items-center justify-between px-6 sm:px-16 lg:px-24">
-        <div class="text-white max-w-md">
-            <p class="uppercase tracking-[0.18em] text-xs font-semibold text-white/80 mb-2">Solo por tiempo limitado</p>
-            <h2 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold leading-none">3 x 2</h2>
-            <p class="mt-3 text-lg sm:text-xl font-semibold tracking-wide">EN SELECCIONADOS</p>
-        </div>
-        <a
-            href="<?php echo page_path('catalogo'); ?>&categoria=ofertas"
-            class="inline-flex items-center justify-center h-12 px-8 bg-secondary text-white font-bold text-sm tracking-[0.15em] hover:brightness-95 transition shrink-0"
+<?php if ($homeBannerCount > 0): ?>
+<section
+    class="relative w-full aspect-[16/9] md:aspect-[16/5] overflow-hidden bg-cream"
+    data-component="campaign-banner-slider"
+    aria-label="Promociones"
+    <?= $homeBannerCount > 1 ? 'data-autoplay="8000"' : '' ?>
+>
+    <div class="relative h-full w-full">
+        <?php foreach ($homeBanners as $i => $banner): ?>
+        <?php
+            $bannerImg = imgprod_path((string)$banner['imagen']);
+            $bannerHref = content_resolve_url(isset($banner['link_url']) ? (string)$banner['link_url'] : null);
+            $bannerEyebrow = trim((string)($banner['eyebrow'] ?? ''));
+            $bannerTitulo = trim((string)($banner['titulo'] ?? ''));
+            $bannerSubtitulo = trim((string)($banner['subtitulo'] ?? ''));
+            $bannerBoton = trim((string)($banner['texto_boton'] ?? ''));
+            $bannerAlt = $bannerTitulo !== '' ? $bannerTitulo : ($bannerEyebrow !== '' ? $bannerEyebrow : 'Promoción');
+        ?>
+        <div
+            class="campaign-banner-slide absolute inset-0 transition-opacity duration-700 ease-in-out <?= $i === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none' ?>"
+            data-slide-index="<?= (int)$i ?>"
+            aria-hidden="<?= $i === 0 ? 'false' : 'true' ?>"
         >
-            COMPRAR
-        </a>
+            <img
+                src="<?= htmlspecialchars($bannerImg, ENT_QUOTES, 'UTF-8') ?>"
+                alt="<?= htmlspecialchars($bannerAlt, ENT_QUOTES, 'UTF-8') ?>"
+                class="absolute inset-0 h-full w-full object-cover"
+                <?= $i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' ?>
+            >
+            <div class="absolute inset-0 bg-gradient-to-r from-black/40 via-black/10 to-black/40"></div>
+            <div class="relative z-10 h-full flex items-center justify-between px-6 sm:px-16 lg:px-24">
+                <div class="text-white max-w-md">
+                    <?php if ($bannerEyebrow !== ''): ?>
+                    <p class="uppercase tracking-[0.18em] text-xs font-semibold text-white/80 mb-2"><?= htmlspecialchars($bannerEyebrow, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endif; ?>
+                    <?php if ($bannerTitulo !== ''): ?>
+                    <h2 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold leading-none"><?= htmlspecialchars($bannerTitulo, ENT_QUOTES, 'UTF-8') ?></h2>
+                    <?php endif; ?>
+                    <?php if ($bannerSubtitulo !== ''): ?>
+                    <p class="mt-3 text-lg sm:text-xl font-semibold tracking-wide"><?= htmlspecialchars($bannerSubtitulo, ENT_QUOTES, 'UTF-8') ?></p>
+                    <?php endif; ?>
+                </div>
+                <?php if ($bannerBoton !== '' && $bannerHref !== ''): ?>
+                <a
+                    href="<?= htmlspecialchars($bannerHref, ENT_QUOTES, 'UTF-8') ?>"
+                    class="inline-flex items-center justify-center h-12 px-8 bg-secondary text-white font-bold text-sm tracking-[0.15em] hover:brightness-95 transition shrink-0"
+                >
+                    <?= htmlspecialchars($bannerBoton, ENT_QUOTES, 'UTF-8') ?>
+                </a>
+                <?php elseif ($bannerBoton !== ''): ?>
+                <span class="inline-flex items-center justify-center h-12 px-8 bg-secondary text-white font-bold text-sm tracking-[0.15em] shrink-0">
+                    <?= htmlspecialchars($bannerBoton, ENT_QUOTES, 'UTF-8') ?>
+                </span>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endforeach; ?>
     </div>
+
+    <?php if ($homeBannerCount > 1): ?>
+    <button
+        type="button"
+        class="campaign-banner-prev absolute left-4 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-dark shadow hover:bg-white transition"
+        aria-label="Banner anterior"
+    >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    <button
+        type="button"
+        class="campaign-banner-next absolute right-4 top-1/2 -translate-y-1/2 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-dark shadow hover:bg-white transition"
+        aria-label="Banner siguiente"
+    >
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </button>
+    <div class="campaign-banner-dots absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+        <?php for ($d = 0; $d < $homeBannerCount; $d++): ?>
+        <button
+            type="button"
+            class="campaign-banner-dot h-2 w-2 rounded-full transition <?= $d === 0 ? 'bg-white scale-110' : 'bg-white/50 hover:bg-white/80' ?>"
+            data-slide-to="<?= $d ?>"
+            aria-label="Ir al banner <?= $d + 1 ?>"
+            aria-current="<?= $d === 0 ? 'true' : 'false' ?>"
+        ></button>
+        <?php endfor; ?>
+    </div>
+    <?php endif; ?>
 </section>
+<?php endif; ?>
 
 <!-- Age tabs + subcategory grid -->
 <section class="py-16 sm:py-24" data-component="age-tabs">
@@ -248,6 +360,138 @@ $fallbackCards = [
         <p class="mt-4 text-xs text-dark/60">Sin spam. Solo lo mejor de Yofi.</p>
     </div>
 </section>
+
+<script>
+(function () {
+    var root = document.querySelector('[data-component="hero-slider"]');
+    if (!root) return;
+
+    var slides = root.querySelectorAll('.hero-slider-slide');
+    var dots = root.querySelectorAll('.hero-slider-dot');
+    var prevBtn = root.querySelector('.hero-slider-prev');
+    var nextBtn = root.querySelector('.hero-slider-next');
+    if (slides.length <= 1) return;
+
+    var current = 0;
+    var autoplayMs = parseInt(root.getAttribute('data-autoplay') || '0', 10);
+    var timer = null;
+
+    function goTo(index) {
+        current = (index + slides.length) % slides.length;
+        slides.forEach(function (slide, i) {
+            var active = i === current;
+            slide.classList.toggle('opacity-100', active);
+            slide.classList.toggle('z-10', active);
+            slide.classList.toggle('opacity-0', !active);
+            slide.classList.toggle('z-0', !active);
+            slide.classList.toggle('pointer-events-none', !active);
+            slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+        });
+        dots.forEach(function (dot, i) {
+            var active = i === current;
+            dot.classList.toggle('bg-white', active);
+            dot.classList.toggle('scale-110', active);
+            dot.classList.toggle('bg-white/50', !active);
+            dot.setAttribute('aria-current', active ? 'true' : 'false');
+        });
+    }
+
+    function scheduleAutoplay() {
+        if (timer) clearInterval(timer);
+        if (autoplayMs > 0) {
+            timer = setInterval(function () { goTo(current + 1); }, autoplayMs);
+        }
+    }
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function () {
+            goTo(current - 1);
+            scheduleAutoplay();
+        });
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+            goTo(current + 1);
+            scheduleAutoplay();
+        });
+    }
+    dots.forEach(function (dot) {
+        dot.addEventListener('click', function () {
+            var idx = parseInt(dot.getAttribute('data-slide-to') || '0', 10);
+            goTo(idx);
+            scheduleAutoplay();
+        });
+    });
+
+    scheduleAutoplay();
+})();
+</script>
+
+<script>
+(function () {
+    var root = document.querySelector('[data-component="campaign-banner-slider"]');
+    if (!root) return;
+
+    var slides = root.querySelectorAll('.campaign-banner-slide');
+    var dots = root.querySelectorAll('.campaign-banner-dot');
+    var prevBtn = root.querySelector('.campaign-banner-prev');
+    var nextBtn = root.querySelector('.campaign-banner-next');
+    if (slides.length <= 1) return;
+
+    var current = 0;
+    var autoplayMs = parseInt(root.getAttribute('data-autoplay') || '0', 10);
+    var timer = null;
+
+    function goTo(index) {
+        current = (index + slides.length) % slides.length;
+        slides.forEach(function (slide, i) {
+            var active = i === current;
+            slide.classList.toggle('opacity-100', active);
+            slide.classList.toggle('z-10', active);
+            slide.classList.toggle('opacity-0', !active);
+            slide.classList.toggle('z-0', !active);
+            slide.classList.toggle('pointer-events-none', !active);
+            slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+        });
+        dots.forEach(function (dot, i) {
+            var active = i === current;
+            dot.classList.toggle('bg-white', active);
+            dot.classList.toggle('scale-110', active);
+            dot.classList.toggle('bg-white/50', !active);
+            dot.setAttribute('aria-current', active ? 'true' : 'false');
+        });
+    }
+
+    function scheduleAutoplay() {
+        if (timer) clearInterval(timer);
+        if (autoplayMs > 0) {
+            timer = setInterval(function () { goTo(current + 1); }, autoplayMs);
+        }
+    }
+
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function () {
+            goTo(current - 1);
+            scheduleAutoplay();
+        });
+    }
+    if (nextBtn) {
+        nextBtn.addEventListener('click', function () {
+            goTo(current + 1);
+            scheduleAutoplay();
+        });
+    }
+    dots.forEach(function (dot) {
+        dot.addEventListener('click', function () {
+            var idx = parseInt(dot.getAttribute('data-slide-to') || '0', 10);
+            goTo(idx);
+            scheduleAutoplay();
+        });
+    });
+
+    scheduleAutoplay();
+})();
+</script>
 
 <script>
 (function () {

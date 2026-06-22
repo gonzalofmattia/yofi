@@ -196,9 +196,9 @@ function renderCartDrawer() {
     if (subtotalEl) subtotalEl.textContent = formatMoney(subtotal);
     if (totalEl) totalEl.textContent = formatMoney(subtotal);
 
-    var freeShippingMin = 80000;
+    var freeShippingMin = parseInt(document.body.getAttribute('data-free-shipping-threshold') || '0', 10);
     if (freeShipEl && freeShipAmt) {
-        if (subtotal > 0 && subtotal < freeShippingMin) {
+        if (freeShippingMin > 0 && subtotal > 0 && subtotal < freeShippingMin) {
             freeShipEl.classList.remove('hidden');
             freeShipAmt.textContent = Math.round(freeShippingMin - subtotal).toLocaleString('es-AR');
         } else {

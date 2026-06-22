@@ -260,3 +260,62 @@ function shipping_config_set(string $clave, string $valor): bool
 
     return $ok;
 }
+
+/**
+ * @return array{success: bool, filename?: string, error?: string}
+ */
+function yofi_upload_imgprod_file(array $file, string $prefix): array
+{
+    if (!isset($file['tmp_name']) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return ['success' => false, 'error' => 'Archivo no recibido o inválido'];
+    }
+
+    $ext = strtolower(pathinfo((string)($file['name'] ?? ''), PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+        return ['success' => false, 'error' => 'Formato no permitido. Usá JPG, PNG o WebP'];
+    }
+
+    $imgDir = dirname(__DIR__, 2) . '/imgprod/';
+    if (!is_dir($imgDir) && !mkdir($imgDir, 0755, true)) {
+        return ['success' => false, 'error' => 'No se pudo crear la carpeta de imágenes'];
+    }
+
+    $filename = preg_replace('/[^a-z0-9_-]+/', '-', strtolower($prefix)) . '-' . time() . '.' . $ext;
+    if (!move_uploaded_file($file['tmp_name'], $imgDir . $filename)) {
+        return ['success' => false, 'error' => 'No se pudo guardar la imagen'];
+    }
+
+    return ['success' => true, 'filename' => $filename];
+}
+
+/**
+ * @return array<string, string>
+ */
+function empresa_config_get_all(): array
+{
+    global $con;
+    $data = [];
+    $res = mysqli_query($con, 'SELECT clave, valor FROM tbl_config_empresa ORDER BY clave');
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $data[(string)$row['clave']] = (string)($row['valor'] ?? '');
+        }
+    }
+
+    return $data;
+}
+
+function empresa_config_set(string $clave, string $valor): bool
+{
+    global $con;
+    $stmt = mysqli_prepare($con, 'INSERT INTO tbl_config_empresa (clave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = ?');
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, 'sss', $clave, $valor, $valor);
+    $ok = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    return $ok;
+}

@@ -19,9 +19,11 @@ function nav_link_url(array $link): string
     return $url;
 }
 ?>
+<?php if (!empty($preheaderShippingText)): ?>
 <div class="w-full bg-cream text-dark text-center text-sm py-2 px-6 md:px-8">
-    Envío gratis en compras superiores a $80.000
+    <?= htmlspecialchars($preheaderShippingText, ENT_QUOTES, 'UTF-8') ?>
 </div>
+<?php endif; ?>
 
 <header class="w-full bg-white border-b border-cream sticky top-0 z-40" data-component="header">
     <div class="w-full px-6 md:px-8">
