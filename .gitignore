@@ -1,12 +1,18 @@
-﻿/logs/*
-!/logs/.gitkeep
-/imgprod/*
-!/imgprod/.gitkeep
+﻿# Logs
+error_log.txt
+logs/*.log
+logs/*.txt
+!logs/.gitkeep
+
+# Configs locales con credenciales reales
 config/mercadopago.local.php
 config/zipnova.local.php
-scripts/test-zipnova.php
-src/php/config.local.php
 .env
-node_modules/
+
+# Sistema
 .DS_Store
 Thumbs.db
+
+# Si en algún momento usás composer
+vendor/
+composer.lock
