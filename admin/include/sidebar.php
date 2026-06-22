@@ -48,6 +48,12 @@ function nav_active_dir(string $dir, string $currentPath): string
         </a>
 
         <div class="nav-section">Sistema</div>
+        <a class="nav-link<?= nav_active('configuracion_envios.php', $currentScript) ?>" href="<?= app_path('admin/configuracion_envios.php') ?>">
+            <i class="bi bi-truck"></i> Envíos
+        </a>
+        <a class="nav-link<?= nav_active('metodos_pago.php', $currentScript) ?><?= nav_active('a_metodo_pago.php', $currentScript) ?>" href="<?= app_path('admin/metodos_pago.php') ?>">
+            <i class="bi bi-credit-card"></i> Métodos de pago
+        </a>
         <a class="nav-link<?= nav_active('configuracion.php', $currentScript) ?>" href="<?= app_path('admin/configuracion.php') ?>">
             <i class="bi bi-gear"></i> Configuración
         </a>

@@ -279,3 +279,41 @@ INSERT INTO `tbl_categorias` (`nombre`,`slug`,`orden`) VALUES
 ('Ofertas','ofertas',6);
 
 -- 2026-06-16 — Schema inicial Yofi v1.0
+
+-- =============================================================================
+-- MIGRACIÓN NUEVA (2026-06-22) — Config operativa de envíos y métodos de pago
+-- Sin secretos de API. Equivalente al patrón de Casa de Insecticidas adaptado a Zipnova.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS `tbl_shipping_config` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `clave` varchar(100) NOT NULL,
+  `valor` text NOT NULL,
+  `descripcion` varchar(255) DEFAULT NULL,
+  `fecha_actualizacion` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `fecha_creacion` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `clave` (`clave`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `tbl_shipping_config` (`clave`, `valor`, `descripcion`) VALUES
+  ('zipnova_enabled', '1', 'Si el envío vía Zipnova está activo en el checkout'),
+  ('zipnova_label', 'Envío a domicilio', 'Texto visible para el cliente'),
+  ('zipnova_eta_default', '3 a 5 días hábiles', 'ETA mostrado cuando la API no devuelve uno específico'),
+  ('free_shipping_threshold', '0', 'Monto mínimo de compra para envío gratis (0 = desactivado)'),
+  ('pickup_enabled', '0', 'Si retiro en local está habilitado'),
+  ('pickup_label', 'Retiro en local', 'Texto visible para el cliente'),
+  ('pickup_address', '', 'Dirección de retiro mostrada al cliente');
+
+CREATE TABLE IF NOT EXISTS `tbl_metodos_pago` (
+  `id_metodo` int NOT NULL AUTO_INCREMENT,
+  `codigo` varchar(50) NOT NULL,
+  `nombre` varchar(100) NOT NULL,
+  `descripcion` varchar(255) DEFAULT NULL,
+  `activo` tinyint DEFAULT 1,
+  `orden` int DEFAULT 0,
+  PRIMARY KEY (`id_metodo`),
+  UNIQUE KEY `codigo` (`codigo`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `tbl_metodos_pago` (`codigo`, `nombre`, `descripcion`, `activo`, `orden`) VALUES
+  ('mercadopago', 'Mercado Pago', 'Tarjetas, transferencia y dinero en cuenta vía Mercado Pago', 1, 1);

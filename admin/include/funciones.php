@@ -210,3 +210,53 @@ if (!function_exists('imgprod_path')) {
         return admin_site_path('imgprod/' . ltrim($path, '/'));
     }
 }
+
+/**
+ * @return array{loaded: bool, data: array<string, string>}
+ */
+function &shipping_config_state(): array
+{
+    static $state = ['loaded' => false, 'data' => []];
+
+    return $state;
+}
+
+function shipping_config_get(string $clave, string $default = ''): string
+{
+    global $con;
+    $state = &shipping_config_state();
+
+    if (!$state['loaded']) {
+        $state['data'] = [];
+        $res = mysqli_query($con, 'SELECT clave, valor FROM tbl_shipping_config');
+        if ($res) {
+            while ($row = mysqli_fetch_assoc($res)) {
+                $state['data'][$row['clave']] = (string)$row['valor'];
+            }
+        }
+        $state['loaded'] = true;
+    }
+
+    return $state['data'][$clave] ?? $default;
+}
+
+function shipping_config_set(string $clave, string $valor): bool
+{
+    global $con;
+    $stmt = mysqli_prepare($con, 'INSERT INTO tbl_shipping_config (clave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = ?');
+    if (!$stmt) {
+        return false;
+    }
+
+    mysqli_stmt_bind_param($stmt, 'sss', $clave, $valor, $valor);
+    $ok = mysqli_stmt_execute($stmt);
+    mysqli_stmt_close($stmt);
+
+    if ($ok) {
+        $state = &shipping_config_state();
+        $state['data'][$clave] = $valor;
+        $state['loaded'] = true;
+    }
+
+    return $ok;
+}

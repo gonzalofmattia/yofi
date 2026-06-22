@@ -14,6 +14,10 @@ $zipnovaConfig = $projectRoot . '/config/zipnova.php';
 if (file_exists($zipnovaConfig)) {
     require_once $zipnovaConfig;
 }
+$mercadopagoConfig = $projectRoot . '/config/mercadopago.php';
+if (file_exists($mercadopagoConfig)) {
+    require_once $mercadopagoConfig;
+}
 if (!defined('INTERNAL_API_KEY')) {
     define('INTERNAL_API_KEY', getenv('INTERNAL_API_KEY') ?: '');
 }
