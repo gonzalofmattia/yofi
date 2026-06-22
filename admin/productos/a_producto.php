@@ -5,6 +5,8 @@ require_once __DIR__ . '/../check_session.php';
 
 $pageTitle = 'Nuevo producto';
 $error_message = '';
+$producto = null;
+$isDrawer = admin_is_partial_request();
 
 $categorias = mysqli_query($con, 'SELECT id_cate, nombre FROM tbl_categorias WHERE publicado = 1 ORDER BY nombre');
 
@@ -30,7 +32,7 @@ if (isset($_POST['envio'])) {
     if ($nombre === '' || $codigo === '' || $id_cate <= 0) {
         $error_message = 'Nombre, código y categoría son obligatorios.';
     } else {
-    $precio_oferta_val = $precio_oferta !== null ? $precio_oferta : 0.0;
+        $precio_oferta_val = $precio_oferta !== null ? $precio_oferta : 0.0;
         $stmt = mysqli_prepare($con, '
             INSERT INTO tbl_productos
             (id_cate, nombre, slug, codigo, precio_base, precio_oferta, descripcion, composicion, cuidados,
@@ -61,7 +63,11 @@ if (isset($_POST['envio'])) {
 
         if (mysqli_stmt_execute($stmt)) {
             $id_prod = (int)mysqli_insert_id($con);
-
+            if (admin_wants_json_response()) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => true, 'id_prod' => $id_prod]);
+                exit;
+            }
             header('Location: e_producto.php?id=' . $id_prod . '&nuevo=1');
             exit();
         }
@@ -69,6 +75,25 @@ if (isset($_POST['envio'])) {
     }
 }
 
+if ($isDrawer) {
+    include __DIR__ . '/_producto_editor.php';
+    exit;
+}
+
 include __DIR__ . '/../header.php';
-include __DIR__ . '/_form_producto.php';
-include __DIR__ . '/../pie.php';
+?>
+<div class="admin-section-header">
+    <div>
+        <h1>Nuevo producto</h1>
+        <p class="subtitle">Completá los datos generales y luego agregá colores</p>
+    </div>
+    <div class="admin-section-actions">
+        <a href="listado.php" class="btn btn-outline-ink">Volver</a>
+    </div>
+</div>
+<?php include __DIR__ . '/_producto_editor.php'; ?>
+<div class="d-flex justify-content-end gap-2 mt-3 mb-4">
+    <a href="listado.php" class="btn btn-outline-ink">Cancelar</a>
+    <button type="button" class="btn btn-ink" onclick="document.getElementById('product-main-form').requestSubmit()">Crear producto</button>
+</div>
+<?php include __DIR__ . '/../pie.php'; ?>

@@ -5,16 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><?= isset($pageTitle) ? htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') . ' — ' : '' ?>Yofi Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
     <link href="<?= app_path('admin/assets/css/admin.css') ?>" rel="stylesheet">
 </head>
 <body class="admin-body">
-<?php include __DIR__ . '/include/sidebar.php'; ?>
+<?php
+$adminUser = (string)($_SESSION['idUsuarioAdminSUser'] ?? 'Admin');
+$adminInitials = admin_user_initials($adminUser);
+include __DIR__ . '/include/sidebar.php';
+?>
+<header class="admin-topbar">
+    <button type="button" class="admin-sidebar-toggle" id="adminSidebarToggle" aria-label="Abrir menú">
+        <i class="bi bi-list"></i>
+    </button>
+    <a href="<?= htmlspecialchars(app_path('admin/dashboard.php'), ENT_QUOTES, 'UTF-8') ?>" class="admin-topbar-brand">
+        <img src="<?= asset_path('img/logo-yofi.png') ?>" alt="Yofi" height="24">
+        <span>Yofi Admin</span>
+    </a>
+    <div class="admin-topbar-search">
+        <i class="bi bi-search"></i>
+        <input type="search" placeholder="Buscar pedidos, productos…" disabled aria-label="Buscador (próximamente)">
+    </div>
+    <div class="admin-topbar-actions">
+        <a href="<?= htmlspecialchars(app_path('index.php'), ENT_QUOTES, 'UTF-8') ?>" class="admin-topbar-link" target="_blank" rel="noopener">
+            <i class="bi bi-box-arrow-up-right"></i> Ver tienda
+        </a>
+        <span class="admin-avatar" title="<?= htmlspecialchars($adminUser, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($adminInitials, ENT_QUOTES, 'UTF-8') ?></span>
+    </div>
+</header>
 <main class="admin-main">
-    <div class="container-fluid py-4 px-4">
-        <?php if (!empty($pageTitle)): ?>
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h4 mb-0"><?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?></h1>
-                <button class="btn btn-outline-secondary d-lg-none" type="button" onclick="document.getElementById('adminSidebar').classList.toggle('show')">Menú</button>
-            </div>
-        <?php endif; ?>
+    <div class="admin-content">

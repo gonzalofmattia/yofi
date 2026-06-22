@@ -37,22 +37,30 @@ $estados = ['pendiente', 'confirmado', 'en_preparacion', 'preparando_envio', 'en
 include __DIR__ . '/../header.php';
 ?>
 
+<div class="admin-section-header">
+    <div>
+        <h1>Pedido <?= htmlspecialchars($orden['numero_orden'], ENT_QUOTES, 'UTF-8') ?></h1>
+        <p class="subtitle"><?= htmlspecialchars(date('d/m/Y H:i', strtotime($orden['fecha_creacion'])), ENT_QUOTES, 'UTF-8') ?></p>
+    </div>
+    <div class="admin-section-actions">
+        <?= estado_pedido_badge((string)$orden['estado']) ?>
+        <a href="listado.php" class="btn btn-outline-ink btn-sm">Volver</a>
+    </div>
+</div>
+
 <div class="row g-4">
     <div class="col-lg-8">
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header card-header-yofi d-flex justify-content-between">
-                <strong>Items</strong>
-                <span><?= estado_pedido_badge((string)$orden['estado']) ?></span>
-            </div>
-            <div class="card-body p-0">
-                <table class="table mb-0">
+        <div class="admin-card mb-4">
+            <div class="admin-card-header"><span>Items del pedido</span></div>
+            <div class="admin-card-body p-0">
+                <table class="admin-table mb-0">
                     <thead><tr><th></th><th>Producto</th><th>Variante</th><th>Cant.</th><th>Precio</th></tr></thead>
                     <tbody>
                     <?php foreach ($items as $item): ?>
                         <tr>
                             <td style="width:60px">
                                 <?php if (!empty($item['imagen'])): ?>
-                                    <img src="<?= imgprod_path($item['imagen']) ?>" alt="" style="width:48px;height:48px;object-fit:cover" class="rounded">
+                                    <img src="<?= imgprod_path($item['imagen']) ?>" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px">
                                 <?php endif; ?>
                             </td>
                             <td><?= htmlspecialchars((string)($item['nombre'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
@@ -64,17 +72,17 @@ include __DIR__ . '/../header.php';
                     </tbody>
                 </table>
             </div>
-            <div class="card-footer text-end">
-                Subtotal: <?= format_money((float)$orden['subtotal']) ?> |
-                Envío: <?= format_money((float)$orden['envio']) ?> |
+            <div class="admin-card-footer justify-content-end">
+                Subtotal: <?= format_money((float)$orden['subtotal']) ?> ·
+                Envío: <?= format_money((float)$orden['envio']) ?> ·
                 <strong>Total: <?= format_money((float)$orden['total']) ?></strong>
             </div>
         </div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-header card-header-yofi"><strong>Historial de estados</strong></div>
-            <div class="card-body p-0">
-                <table class="table table-sm mb-0">
+        <div class="admin-card">
+            <div class="admin-card-header"><span>Historial de estados</span></div>
+            <div class="admin-card-body p-0">
+                <table class="admin-table mb-0">
                     <thead><tr><th>Fecha</th><th>Cambio</th><th>Usuario</th><th>Notas</th></tr></thead>
                     <tbody>
                     <?php if ($historial && mysqli_num_rows($historial) > 0): while ($h = mysqli_fetch_assoc($historial)): ?>

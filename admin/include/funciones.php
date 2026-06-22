@@ -80,21 +80,95 @@ function admin_csrf_field(): string
     return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars($token, ENT_QUOTES, 'UTF-8') . '">';
 }
 
+function admin_estados_venta_confirmada(): array
+{
+    return ['confirmado', 'en_preparacion', 'preparando_envio', 'enviado', 'entregado'];
+}
+
 function estado_pedido_badge(string $estado): string
 {
     $map = [
-        'pendiente' => 'secondary',
-        'confirmado' => 'success',
-        'en_preparacion' => 'primary',
-        'preparando_envio' => 'info',
-        'enviado' => 'info',
-        'entregado' => 'dark',
-        'cancelado' => 'danger',
+        'pendiente' => 'pendiente',
+        'confirmado' => 'confirmado',
+        'en_preparacion' => 'en_preparacion',
+        'preparando_envio' => 'preparando_envio',
+        'enviado' => 'enviado',
+        'entregado' => 'entregado',
+        'cancelado' => 'cancelado',
     ];
-    $class = $map[$estado] ?? 'secondary';
-    $label = ucfirst(str_replace('_', ' ', $estado));
+    $class = $map[$estado] ?? 'pendiente';
+    $labels = [
+        'pendiente' => 'Pendiente',
+        'confirmado' => 'Confirmado',
+        'en_preparacion' => 'En preparación',
+        'preparando_envio' => 'Preparando envío',
+        'enviado' => 'Enviado',
+        'entregado' => 'Entregado',
+        'cancelado' => 'Cancelado',
+    ];
+    $label = $labels[$estado] ?? ucfirst(str_replace('_', ' ', $estado));
 
-    return '<span class="badge bg-' . $class . '">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+    return '<span class="badge-status badge-status--' . htmlspecialchars($class, ENT_QUOTES, 'UTF-8') . '">'
+        . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</span>';
+}
+
+function producto_estado_badge(int $publicado): string
+{
+    if ($publicado === 1) {
+        return '<span class="badge-status badge-status--publicado">Publicado</span>';
+    }
+
+    return '<span class="badge-status badge-status--borrador">Borrador</span>';
+}
+
+function admin_user_initials(string $username): string
+{
+    $username = trim($username);
+    if ($username === '') {
+        return 'AD';
+    }
+
+    $parts = preg_split('/[\s._-]+/', $username) ?: [];
+    $initials = '';
+    foreach ($parts as $part) {
+        if ($part !== '') {
+            $initials .= strtoupper($part[0]);
+        }
+        if (strlen($initials) >= 2) {
+            break;
+        }
+    }
+
+    return $initials !== '' ? substr($initials, 0, 2) : strtoupper(substr($username, 0, 2));
+}
+
+function admin_is_partial_request(): bool
+{
+    return isset($_GET['partial']) && (string)$_GET['partial'] === '1';
+}
+
+function admin_wants_json_response(): bool
+{
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    $xhr = $_SERVER['HTTP_X_REQUESTED_WITH'] ?? '';
+
+    return str_contains($accept, 'application/json') || strtolower($xhr) === 'xmlhttprequest';
+}
+
+function admin_fecha_es(): string
+{
+    $dias = ['Monday' => 'lunes', 'Tuesday' => 'martes', 'Wednesday' => 'miércoles', 'Thursday' => 'jueves', 'Friday' => 'viernes', 'Saturday' => 'sábado', 'Sunday' => 'domingo'];
+    $meses = ['January' => 'enero', 'February' => 'febrero', 'March' => 'marzo', 'April' => 'abril', 'May' => 'mayo', 'June' => 'junio', 'July' => 'julio', 'August' => 'agosto', 'September' => 'septiembre', 'October' => 'octubre', 'November' => 'noviembre', 'December' => 'diciembre'];
+    $en = date('l, j \d\e F');
+    $es = $en;
+    foreach ($dias as $enDay => $esDay) {
+        $es = str_replace($enDay, $esDay, $es);
+    }
+    foreach ($meses as $enMonth => $esMonth) {
+        $es = str_replace($enMonth, $esMonth, $es);
+    }
+
+    return ucfirst($es);
 }
 
 function format_money(float $amount): string

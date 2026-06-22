@@ -7,5 +7,6 @@ window.YOFI_ADMIN = {
     basePath: <?= json_encode(app_path(''), JSON_UNESCAPED_UNICODE) ?>
 };
 </script>
+<script src="<?= app_path('admin/assets/js/admin.js') ?>"></script>
 </body>
 </html>

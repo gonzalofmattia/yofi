@@ -61,5 +61,10 @@ foreach ($tmpNames as $i => $tmp) {
     $orden++;
 }
 
-header('Location: ' . app_path('admin/productos/e_producto.php?id=' . $id_prod . '&modificado=1'));
+$redirect = isset($_POST['redirect']) ? trim((string)$_POST['redirect']) : '';
+if ($redirect !== '' && preg_match('/^listado\.php(\?.*)?$/', $redirect)) {
+    header('Location: ' . app_path('admin/productos/' . $redirect));
+} else {
+    header('Location: ' . app_path('admin/productos/e_producto.php?id=' . $id_prod . '&modificado=1'));
+}
 exit();

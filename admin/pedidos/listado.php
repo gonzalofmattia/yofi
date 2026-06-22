@@ -30,7 +30,7 @@ if ($hasta !== '') {
 }
 
 $sql = "
-    SELECT id_orden, numero_orden, CONCAT(nombre, ' ', apellido) AS cliente, total, estado, fecha_creacion
+    SELECT id_orden, numero_orden, CONCAT(nombre, ' ', apellido) AS cliente, email, total, estado, fecha_creacion
     FROM tbl_ordenes
     $where
     ORDER BY fecha_creacion DESC
@@ -43,43 +43,71 @@ if ($types !== '') {
 mysqli_stmt_execute($stmt);
 $result = mysqli_stmt_get_result($stmt);
 
-$estados = ['pendiente', 'confirmado', 'en_preparacion', 'preparando_envio', 'enviado', 'entregado', 'cancelado'];
+$tabEstados = [
+    '' => 'Todos',
+    'pendiente' => 'Pendientes',
+    'confirmado' => 'Confirmados',
+    'enviado' => 'Enviados',
+    'cancelado' => 'Cancelados',
+];
+
+function pedidos_tab_url(string $estado, string $desde, string $hasta): string
+{
+    $parts = [];
+    if ($estado !== '') {
+        $parts[] = 'estado=' . urlencode($estado);
+    }
+    if ($desde !== '') {
+        $parts[] = 'desde=' . urlencode($desde);
+    }
+    if ($hasta !== '') {
+        $parts[] = 'hasta=' . urlencode($hasta);
+    }
+
+    return 'listado.php' . ($parts ? '?' . implode('&', $parts) : '');
+}
 
 include __DIR__ . '/../header.php';
 ?>
 
-<div class="card shadow-sm border-0 mb-3">
-    <div class="card-body">
-        <form method="get" class="row g-2 align-items-end">
+<div class="admin-section-header">
+    <div>
+        <h1>Pedidos</h1>
+        <p class="subtitle">Gestión de ventas y envíos</p>
+    </div>
+</div>
+
+<div class="admin-tabs" id="pedidosTabs">
+    <?php foreach ($tabEstados as $val => $label): ?>
+    <a href="<?= htmlspecialchars(pedidos_tab_url($val, $desde, $hasta), ENT_QUOTES, 'UTF-8') ?>"
+       class="admin-tab pedido-tab<?= $estado === $val ? ' active' : '' ?>"
+       data-estado="<?= htmlspecialchars($val, ENT_QUOTES, 'UTF-8') ?>"><?= htmlspecialchars($label, ENT_QUOTES, 'UTF-8') ?></a>
+    <?php endforeach; ?>
+</div>
+
+<div class="admin-card mb-3">
+    <div class="admin-card-body">
+        <form method="get" class="row g-2 align-items-end" id="pedidosFilterForm">
+            <input type="hidden" name="estado" id="filtroEstado" value="<?= htmlspecialchars($estado, ENT_QUOTES, 'UTF-8') ?>">
             <div class="col-md-3">
-                <label class="form-label">Estado</label>
-                <select name="estado" class="form-select">
-                    <option value="">Todos</option>
-                    <?php foreach ($estados as $e): ?>
-                        <option value="<?= $e ?>" <?= $estado === $e ? 'selected' : '' ?>><?= ucfirst(str_replace('_', ' ', $e)) ?></option>
-                    <?php endforeach; ?>
-                </select>
+                <label class="form-label small fw-semibold">Desde</label>
+                <input type="date" name="desde" class="form-control form-control-sm" value="<?= htmlspecialchars($desde, ENT_QUOTES, 'UTF-8') ?>">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Desde</label>
-                <input type="date" name="desde" class="form-control" value="<?= htmlspecialchars($desde, ENT_QUOTES, 'UTF-8') ?>">
+                <label class="form-label small fw-semibold">Hasta</label>
+                <input type="date" name="hasta" class="form-control form-control-sm" value="<?= htmlspecialchars($hasta, ENT_QUOTES, 'UTF-8') ?>">
             </div>
             <div class="col-md-3">
-                <label class="form-label">Hasta</label>
-                <input type="date" name="hasta" class="form-control" value="<?= htmlspecialchars($hasta, ENT_QUOTES, 'UTF-8') ?>">
-            </div>
-            <div class="col-md-3">
-                <button type="submit" class="btn btn-yofi w-100">Filtrar</button>
+                <button type="submit" class="btn btn-ink btn-sm w-100">Filtrar por fecha</button>
             </div>
         </form>
     </div>
 </div>
 
-<div class="card shadow-sm border-0">
-    <div class="card-header card-header-yofi"><strong>Listado de pedidos</strong></div>
-    <div class="card-body p-0">
+<div class="admin-card">
+    <div class="admin-card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
+            <table class="admin-table mb-0">
                 <thead>
                     <tr>
                         <th>Número</th>
@@ -94,16 +122,19 @@ include __DIR__ . '/../header.php';
                 <?php if ($result && mysqli_num_rows($result) > 0): ?>
                     <?php while ($row = mysqli_fetch_assoc($result)): ?>
                         <tr>
-                            <td><?= htmlspecialchars($row['numero_orden'], ENT_QUOTES, 'UTF-8') ?></td>
-                            <td><?= htmlspecialchars($row['cliente'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td class="fw-semibold"><?= htmlspecialchars($row['numero_orden'], ENT_QUOTES, 'UTF-8') ?></td>
+                            <td>
+                                <div class="fw-semibold"><?= htmlspecialchars($row['cliente'], ENT_QUOTES, 'UTF-8') ?></div>
+                                <div class="product-cell-code"><?= htmlspecialchars($row['email'], ENT_QUOTES, 'UTF-8') ?></div>
+                            </td>
                             <td><?= format_money((float)$row['total']) ?></td>
                             <td><?= estado_pedido_badge((string)$row['estado']) ?></td>
                             <td><?= htmlspecialchars(date('d/m/Y H:i', strtotime($row['fecha_creacion'])), ENT_QUOTES, 'UTF-8') ?></td>
-                            <td><a href="detalle.php?id=<?= (int)$row['id_orden'] ?>" class="btn btn-sm btn-outline-primary">Ver</a></td>
+                            <td><a href="detalle.php?id=<?= (int)$row['id_orden'] ?>" class="btn btn-sm btn-outline-ink">Ver</a></td>
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
-                    <tr><td colspan="6" class="text-center text-muted py-4">Sin pedidos</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-5">Sin pedidos</td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>
