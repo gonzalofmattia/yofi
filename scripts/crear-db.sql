@@ -317,3 +317,57 @@ CREATE TABLE IF NOT EXISTS `tbl_metodos_pago` (
 
 INSERT INTO `tbl_metodos_pago` (`codigo`, `nombre`, `descripcion`, `activo`, `orden`) VALUES
   ('mercadopago', 'Mercado Pago', 'Tarjetas, transferencia y dinero en cuenta vía Mercado Pago', 1, 1);
+
+-- =============================================================================
+-- MIGRACIÓN NUEVA (2026-06-22) — Slider hero, banners secundarios, config empresa
+-- =============================================================================
+
+-- Slider de imágenes del hero (sin texto, solo imagen + link opcional)
+CREATE TABLE IF NOT EXISTS `tbl_slider` (
+  `id_slide` int NOT NULL AUTO_INCREMENT,
+  `imagen` varchar(250) NOT NULL,
+  `link_url` varchar(255) DEFAULT NULL,
+  `orden` int DEFAULT 0,
+  `activo` tinyint DEFAULT 1,
+  `fecha_creacion` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id_slide`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Banners secundarios del home (imagen + textos superpuestos editables)
+CREATE TABLE IF NOT EXISTS `tbl_banners` (
+  `id_banner` int NOT NULL AUTO_INCREMENT,
+  `eyebrow` varchar(150) DEFAULT NULL,
+  `titulo` varchar(150) DEFAULT NULL,
+  `subtitulo` varchar(150) DEFAULT NULL,
+  `texto_boton` varchar(100) DEFAULT NULL,
+  `imagen` varchar(250) NOT NULL,
+  `link_url` varchar(255) DEFAULT NULL,
+  `posicion` varchar(50) DEFAULT NULL,
+  `orden` int DEFAULT 0,
+  `activo` tinyint DEFAULT 1,
+  PRIMARY KEY (`id_banner`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Datos generales de la empresa (clave-valor)
+CREATE TABLE IF NOT EXISTS `tbl_config_empresa` (
+  `clave` varchar(100) NOT NULL,
+  `valor` text,
+  PRIMARY KEY (`clave`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `tbl_config_empresa` (`clave`, `valor`) VALUES
+  ('whatsapp', ''),
+  ('email_contacto', ''),
+  ('telefono', ''),
+  ('direccion', ''),
+  ('instagram', ''),
+  ('facebook', ''),
+  ('horario_atencion', '');
+
+-- Slide inicial: misma imagen que el hero hardcodeado actual
+INSERT INTO `tbl_slider` (`imagen`, `orden`, `activo`) VALUES
+  ('hero-principal.jpg', 1, 1);
+
+-- Banner inicial: campaign banner hardcodeado en home.php (líneas 126-147)
+INSERT INTO `tbl_banners` (`eyebrow`, `titulo`, `subtitulo`, `texto_boton`, `imagen`, `link_url`, `posicion`, `orden`, `activo`) VALUES
+  ('Solo por tiempo limitado', '3 x 2', 'EN SELECCIONADOS', 'COMPRAR', 'banner-3x2.jpg', 'index.php?p=catalogo&categoria=ofertas', 'home_secundario', 1, 1);
