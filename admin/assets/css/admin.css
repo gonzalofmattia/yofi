@@ -1,0 +1,86 @@
+:root {
+    --yofi-primary: #FAAF7D;
+    --yofi-primary-dark: #e8955a;
+    --yofi-dark: #2d2a26;
+    --yofi-sidebar-width: 260px;
+}
+
+body.admin-body {
+    background: #f5f5f5;
+    font-family: 'Nunito', sans-serif;
+}
+
+.btn-yofi {
+    background: var(--yofi-primary);
+    border-color: var(--yofi-primary);
+    color: #fff;
+}
+.btn-yofi:hover {
+    background: var(--yofi-primary-dark);
+    border-color: var(--yofi-primary-dark);
+    color: #fff;
+}
+
+.bg-yofi {
+    background: linear-gradient(135deg, var(--yofi-primary) 0%, var(--yofi-primary-dark) 100%) !important;
+}
+
+.admin-sidebar {
+    width: var(--yofi-sidebar-width);
+    min-height: 100vh;
+    background: #fff;
+    border-right: 1px solid #eee;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    overflow-y: auto;
+}
+
+.admin-main {
+    margin-left: var(--yofi-sidebar-width);
+    min-height: 100vh;
+}
+
+.admin-sidebar .nav-link {
+    color: #444;
+    padding: 0.55rem 1rem;
+    border-radius: 8px;
+    margin: 2px 8px;
+}
+.admin-sidebar .nav-link:hover,
+.admin-sidebar .nav-link.active {
+    background: rgba(250, 175, 125, 0.2);
+    color: var(--yofi-dark);
+}
+.admin-sidebar .nav-section {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #999;
+    padding: 1rem 1rem 0.25rem;
+}
+
+.card-header-yofi {
+    background: var(--yofi-primary);
+    color: #fff;
+    border-radius: 12px 12px 0 0;
+}
+
+.table-actions .btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 991px) {
+    .admin-sidebar {
+        left: calc(-1 * var(--yofi-sidebar-width));
+        transition: left 0.3s;
+    }
+    .admin-sidebar.show {
+        left: 0;
+    }
+    .admin-main {
+        margin-left: 0;
+    }
+}

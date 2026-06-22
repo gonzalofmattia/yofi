@@ -1,0 +1,12 @@
+﻿/logs/*
+!/logs/.gitkeep
+/imgprod/*
+!/imgprod/.gitkeep
+config/mercadopago.local.php
+config/zipnova.local.php
+scripts/test-zipnova.php
+src/php/config.local.php
+.env
+node_modules/
+.DS_Store
+Thumbs.db

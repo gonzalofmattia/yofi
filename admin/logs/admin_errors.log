@@ -1,0 +1,7 @@
+[16-Jun-2026 17:29:37 America/Argentina/Buenos_Aires] PHP Warning:  require_once(C:\laragon\www\yofi\admin\include/../config.php): Failed to open stream: No such file or directory in C:\laragon\www\yofi\admin\include\sidebar.php on line 2
+[16-Jun-2026 17:29:37 America/Argentina/Buenos_Aires] PHP Fatal error:  Uncaught Error: Failed opening required 'C:\laragon\www\yofi\admin\include/../config.php' (include_path='.;C:/laragon/etc/php/pear') in C:\laragon\www\yofi\admin\include\sidebar.php:2
+Stack trace:
+#0 C:\laragon\www\yofi\admin\header.php(16): include()
+#1 C:\laragon\www\yofi\admin\dashboard.php(37): include('C:\\laragon\\www\\...')
+#2 {main}
+  thrown in C:\laragon\www\yofi\admin\include\sidebar.php on line 2

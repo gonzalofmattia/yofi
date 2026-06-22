@@ -1,0 +1,68 @@
+<?php
+require_once __DIR__ . '/src/php/config.php';
+require_once __DIR__ . '/config/mercadopago.php';
+require_once __DIR__ . '/config/zipnova.php';
+
+if (!defined('INTERNAL_API_KEY')) {
+    define('INTERNAL_API_KEY', getenv('INTERNAL_API_KEY') ?: '');
+}
+
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+
+if ($scriptDir === '/' || $scriptDir === '.') {
+    $scriptDir = '';
+}
+
+define('BASE_PATH', $scriptDir);
+define('BASE_URL', $protocol . '://' . $host . ($scriptDir ? '/' . ltrim($scriptDir, '/') : ''));
+
+define('SITE_DESCRIPTION', 'Ropa infantil con estilo para los más chicos.');
+define('SITE_KEYWORDS', 'ropa infantil, niños, bebés, moda kids, Yofi');
+
+if (!defined('DEBUG_MODE')) {
+    define('DEBUG_MODE', ENV === 'dev');
+}
+
+function app_path(string $path = ''): string
+{
+    $clean = ltrim($path, '/');
+    if ($clean === '') {
+        return BASE_PATH !== '' ? rtrim(BASE_PATH, '/') : '/';
+    }
+
+    if (BASE_PATH !== '') {
+        return rtrim(BASE_PATH, '/') . '/' . $clean;
+    }
+
+    return '/' . $clean;
+}
+
+function asset_path(string $path): string
+{
+    $relativePath = 'assets/' . ltrim($path, '/');
+    $url = app_path($relativePath);
+
+    $filePath = __DIR__ . '/' . $relativePath;
+    if (file_exists($filePath)) {
+        $url .= '?v=' . filemtime($filePath);
+    }
+
+    return $url;
+}
+
+function page_path(string $page): string
+{
+    return app_path('index.php?p=' . urlencode($page));
+}
+
+function image_path(string $path): string
+{
+    return app_path('imagenes/' . ltrim($path, '/'));
+}
+
+function imgprod_path(string $path): string
+{
+    return app_path('imgprod/' . ltrim($path, '/'));
+}
