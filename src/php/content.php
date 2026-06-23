@@ -50,6 +50,25 @@ function content_resolve_url(?string $url): string
 }
 
 /**
+ * URL de imagen de ítem de pedido (acepta path relativo o URL absoluta del carrito).
+ */
+function order_item_image_url(string $imagen): string
+{
+    $imagen = trim($imagen);
+    if ($imagen === '') {
+        return imgprod_path('placeholder.jpg');
+    }
+    if (preg_match('#^https?://#i', $imagen)) {
+        return $imagen;
+    }
+    if (preg_match('#/imgprod/(.+)$#', $imagen, $m)) {
+        return imgprod_path($m[1]);
+    }
+
+    return imgprod_path(ltrim($imagen, '/'));
+}
+
+/**
  * @return list<array<string, mixed>>
  */
 function get_home_edad_banners(): array

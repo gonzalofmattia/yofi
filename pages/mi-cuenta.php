@@ -96,6 +96,9 @@ if ($loggedIn && $userId && $_SERVER['REQUEST_METHOD'] === 'POST' && $tab !== 'l
 }
 
 $addresses = ($loggedIn && $userId) ? getUserAddresses($userId) : [];
+if ($loggedIn && $userId) {
+    syncUserOrdersByEmail($userId);
+}
 $orders = ($loggedIn && $userId) ? getUserOrders($userId) : [];
 
 $orderDetail = null;
@@ -118,7 +121,8 @@ $wishlistProducts = get_products_for_wishlist($wishlistIds);
 $estadoLabels = [
     'pendiente' => 'Pendiente',
     'confirmado' => 'Confirmado',
-    'preparando' => 'Preparando',
+    'en_preparacion' => 'En preparación',
+    'preparando_envio' => 'Preparando envío',
     'enviado' => 'Enviado',
     'entregado' => 'Entregado',
     'cancelado' => 'Cancelado',
@@ -380,7 +384,11 @@ $navItems = [
                     </div>
                     <ul class="divide-y divide-cream border-t border-cream pt-4">
                         <?php foreach ($items as $item): ?>
-                        <li class="py-3 flex justify-between gap-4 text-sm">
+                        <li class="py-3 flex gap-3 text-sm">
+                            <?php if (!empty($item['imagen'])): ?>
+                            <img src="<?php echo htmlspecialchars(order_item_image_url((string) $item['imagen']), ENT_QUOTES, 'UTF-8'); ?>" alt="" class="w-14 h-16 object-cover bg-cream/50 shrink-0 rounded">
+                            <?php endif; ?>
+                            <div class="flex-1 flex justify-between gap-4 min-w-0">
                             <div>
                                 <p class="font-semibold"><?php echo htmlspecialchars((string) ($item['nombre'] ?? 'Producto'), ENT_QUOTES, 'UTF-8'); ?></p>
                                 <p class="text-earth text-xs"><?php
@@ -389,6 +397,7 @@ $navItems = [
                                 ?></p>
                             </div>
                             <p class="font-bold shrink-0"><?php echo format_price((float) ($item['precio_unitario'] ?? 0) * (int) ($item['cantidad'] ?? 1)); ?></p>
+                            </div>
                         </li>
                         <?php endforeach; ?>
                     </ul>

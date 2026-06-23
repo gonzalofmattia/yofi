@@ -60,7 +60,7 @@ include __DIR__ . '/../header.php';
                         <tr>
                             <td style="width:60px">
                                 <?php if (!empty($item['imagen'])): ?>
-                                    <img src="<?= imgprod_path($item['imagen']) ?>" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px">
+                                    <img src="<?= htmlspecialchars(order_item_image_url((string)$item['imagen']), ENT_QUOTES, 'UTF-8') ?>" alt="" style="width:48px;height:48px;object-fit:cover;border-radius:6px">
                                 <?php endif; ?>
                             </td>
                             <td><?= htmlspecialchars((string)($item['nombre'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>

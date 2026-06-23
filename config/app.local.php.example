@@ -1,0 +1,8 @@
+<?php
+
+/**
+ * Copiá este archivo como config/app.local.php
+ * config/app.local.php está en .gitignore — no commitear claves.
+ */
+
+define('INTERNAL_API_KEY', 'genera-una-clave-larga-y-secreta-aqui');

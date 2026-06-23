@@ -161,6 +161,44 @@ function establishUserSession(array $user, bool $needsPasswordSetup = false): vo
     emitPublicSessionCookie();
 }
 
+/**
+ * Vincula pedidos de invitado (usuario_id NULL) cuyo email coincide con el de la cuenta.
+ */
+function syncUserOrdersByEmail(int $userId): int
+{
+    if ($userId <= 0) {
+        return 0;
+    }
+
+    try {
+        $user = getUserData($userId);
+        if (!$user) {
+            return 0;
+        }
+
+        $email = strtolower(trim((string) ($user['email'] ?? '')));
+        if ($email === '') {
+            return 0;
+        }
+
+        $pdo = db_rw();
+        $stmt = $pdo->prepare('
+            UPDATE tbl_ordenes
+            SET usuario_id = ?
+            WHERE usuario_id IS NULL
+              AND deleted_at IS NULL
+              AND LOWER(TRIM(email)) = ?
+        ');
+        $stmt->execute([$userId, $email]);
+
+        return $stmt->rowCount();
+    } catch (Throwable $e) {
+        error_log('syncUserOrdersByEmail: ' . $e->getMessage());
+
+        return 0;
+    }
+}
+
 function loginUser(string $email, string $password): array
 {
     try {
@@ -202,6 +240,7 @@ function loginUser(string $email, string $password): array
         $upd->execute([(int) $user['id_usuario']]);
 
         establishUserSession($user, false);
+        syncUserOrdersByEmail((int) $user['id_usuario']);
 
         return [
             'success' => true,

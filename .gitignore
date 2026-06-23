@@ -8,6 +8,7 @@ logs/*.txt
 config/mercadopago.local.php
 config/zipnova.local.php
 config/smtp.local.php
+config/app.local.php
 .env
 
 # Sistema

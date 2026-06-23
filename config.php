@@ -8,10 +8,7 @@ require_once __DIR__ . '/src/php/config.php';
 require_once __DIR__ . '/config/mercadopago.php';
 require_once __DIR__ . '/config/zipnova.php';
 require_once __DIR__ . '/config/smtp.php';
-
-if (!defined('INTERNAL_API_KEY')) {
-    define('INTERNAL_API_KEY', getenv('INTERNAL_API_KEY') ?: '');
-}
+require_once __DIR__ . '/config/app.php';
 
 $protocol = yofi_request_protocol();
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';

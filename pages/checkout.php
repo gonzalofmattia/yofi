@@ -126,7 +126,7 @@ $checkoutBootstrap = [
                     </div>
 
                     <button type="button" class="w-full sm:w-auto h-12 px-8 rounded-full bg-dark text-white font-extrabold text-sm hover:bg-dark/90 transition" data-checkout-next="2">
-                        Continuar a revisión
+                        Revisar y confirmar compra
                     </button>
                 </form>
             </div>

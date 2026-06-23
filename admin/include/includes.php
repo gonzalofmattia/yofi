@@ -18,8 +18,9 @@ $mercadopagoConfig = $projectRoot . '/config/mercadopago.php';
 if (file_exists($mercadopagoConfig)) {
     require_once $mercadopagoConfig;
 }
-if (!defined('INTERNAL_API_KEY')) {
-    define('INTERNAL_API_KEY', getenv('INTERNAL_API_KEY') ?: '');
+$appConfig = $projectRoot . '/config/app.php';
+if (file_exists($appConfig)) {
+    require_once $appConfig;
 }
 
 if (defined('IS_LOCAL') && IS_LOCAL) {

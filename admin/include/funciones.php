@@ -228,6 +228,24 @@ if (!function_exists('imgprod_path')) {
     }
 }
 
+if (!function_exists('order_item_image_url')) {
+    function order_item_image_url(string $imagen): string
+    {
+        $imagen = trim($imagen);
+        if ($imagen === '') {
+            return imgprod_path('placeholder.jpg');
+        }
+        if (preg_match('#^https?://#i', $imagen)) {
+            return $imagen;
+        }
+        if (preg_match('#/imgprod/(.+)$#', $imagen, $m)) {
+            return imgprod_path($m[1]);
+        }
+
+        return imgprod_path(ltrim($imagen, '/'));
+    }
+}
+
 /**
  * @return array{loaded: bool, data: array<string, string>}
  */
