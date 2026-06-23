@@ -22,6 +22,23 @@ function borrado($borra, $imagespath, $item): string
     return '';
 }
 
+function error_admin(string $code): string
+{
+    $messages = [
+        'en_uso_productos' => 'No se puede eliminar esta categoría porque tiene productos activos asignados. Reasigná esos productos a otra categoría desde Productos y volvé a intentar.',
+        'en_uso_subcategorias' => 'No se puede eliminar esta categoría porque tiene subcategorías. Eliminá o reasigná las subcategorías primero.',
+        'delete_failed' => 'No se pudo eliminar la categoría. Verificá que no tenga productos ni subcategorías asociadas.',
+    ];
+
+    if ($code === '' || !isset($messages[$code])) {
+        return '';
+    }
+
+    return '<div class="alert alert-warning alert-dismissible fade show" role="alert">'
+        . '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>'
+        . htmlspecialchars($messages[$code], ENT_QUOTES, 'UTF-8') . '</div>';
+}
+
 function agregado($agreg, $imagespath, $item): string
 {
     if ((string)$agreg === '1') {

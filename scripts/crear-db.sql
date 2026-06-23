@@ -263,7 +263,8 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT INTO `tbl_talles` (`nombre`, `orden`) VALUES
 ('0-3M',1),('3-6M',2),('6-12M',3),
 ('1A',4),('2A',5),('3A',6),('4A',7),
-('6A',8),('8A',9),('10A',10),('12A',11);
+('6A',8),('8A',9),('10A',10),('12A',11),
+('Único',99);
 
 INSERT INTO `tbl_colores` (`nombre`, `hex_code`) VALUES
 ('Blanco','#FFFFFF'),('Negro','#1A1A1A'),('Rosa','#F4A7B9'),

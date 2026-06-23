@@ -5,3 +5,13 @@ Stack trace:
 #1 C:\laragon\www\yofi\admin\dashboard.php(37): include('C:\\laragon\\www\\...')
 #2 {main}
   thrown in C:\laragon\www\yofi\admin\include\sidebar.php on line 2
+[22-Jun-2026 21:49:36 America/Argentina/Buenos_Aires] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot delete or update a parent row: a foreign key constraint fails (`yofi`.`tbl_productos`, CONSTRAINT `tbl_productos_ibfk_1` FOREIGN KEY (`id_cate`) REFERENCES `tbl_categorias` (`id_cate`)) in C:\laragon\www\yofi\admin\categorias\b_categoria.php:9
+Stack trace:
+#0 C:\laragon\www\yofi\admin\categorias\b_categoria.php(9): mysqli_stmt_execute(Object(mysqli_stmt))
+#1 {main}
+  thrown in C:\laragon\www\yofi\admin\categorias\b_categoria.php on line 9
+[22-Jun-2026 22:03:32 America/Argentina/Buenos_Aires] PHP Fatal error:  Uncaught mysqli_sql_exception: Cannot delete or update a parent row: a foreign key constraint fails (`yofi`.`tbl_productos`, CONSTRAINT `tbl_productos_ibfk_1` FOREIGN KEY (`id_cate`) REFERENCES `tbl_categorias` (`id_cate`)) in C:\laragon\www\yofi\admin\categorias\b_categoria.php:9
+Stack trace:
+#0 C:\laragon\www\yofi\admin\categorias\b_categoria.php(9): mysqli_stmt_execute(Object(mysqli_stmt))
+#1 {main}
+  thrown in C:\laragon\www\yofi\admin\categorias\b_categoria.php on line 9

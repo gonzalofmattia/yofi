@@ -1,23 +1,9 @@
 <?php
+require_once __DIR__ . '/../src/php/products.php';
+
 $current_page = $page_id ?? 'home';
-
-$nav_links = [
-    ['slug' => 'catalogo', 'label' => 'MINI', 'query' => 'edad=mini'],
-    ['slug' => 'catalogo', 'label' => '1 A 4 AÑOS', 'query' => 'edad=1-a-4'],
-    ['slug' => 'catalogo', 'label' => '4 A 12 AÑOS', 'query' => 'edad=4-a-12'],
-    ['slug' => 'catalogo', 'label' => 'ACCESORIOS', 'query' => 'categoria=accesorios'],
-    ['slug' => 'catalogo', 'label' => 'CALZADO', 'query' => 'categoria=calzado'],
-    ['slug' => 'catalogo', 'label' => 'OFERTAS', 'query' => 'ofertas=1'],
-];
-
-function nav_link_url(array $link): string
-{
-    $url = page_path($link['slug']);
-    if (!empty($link['query'])) {
-        $url .= '&' . $link['query'];
-    }
-    return $url;
-}
+$nav_categorias = get_parent_categories();
+$currentCategoriaSlug = isset($_GET['categoria']) ? trim((string)$_GET['categoria']) : '';
 ?>
 <?php if (!empty($preheaderShippingText)): ?>
 <div class="w-full bg-cream text-dark text-center text-sm py-2 px-6 md:px-8">
@@ -78,22 +64,29 @@ function nav_link_url(array $link): string
         </div>
     </div>
 
+    <?php if (!empty($nav_categorias)): ?>
     <nav class="hidden md:block border-t border-cream bg-white w-full" aria-label="Navegación principal">
         <div class="w-full px-6 md:px-8">
-            <ul class="flex items-center justify-center gap-6 lg:gap-10 py-3">
-                <?php foreach ($nav_links as $link): ?>
+            <ul class="flex items-center justify-center gap-6 lg:gap-10 py-3 flex-wrap">
+                <?php foreach ($nav_categorias as $categoria): ?>
+                <?php
+                    $slug = (string)$categoria['slug'];
+                    $isActive = $currentCategoriaSlug !== '' && $currentCategoriaSlug === $slug;
+                ?>
                 <li>
                     <a
-                        href="<?php echo nav_link_url($link); ?>"
-                        class="text-xs lg:text-sm font-semibold tracking-wide text-dark hover:text-accent transition-colors uppercase"
+                        href="<?php echo htmlspecialchars(category_catalog_url($slug), ENT_QUOTES, 'UTF-8'); ?>"
+                        class="text-xs lg:text-sm font-semibold tracking-wide uppercase transition-colors <?php echo $isActive ? 'text-accent' : 'text-dark hover:text-accent'; ?>"
+                        <?php echo $isActive ? 'aria-current="page"' : ''; ?>
                     >
-                        <?php echo htmlspecialchars($link['label'], ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars((string)$categoria['nombre'], ENT_QUOTES, 'UTF-8'); ?>
                     </a>
                 </li>
                 <?php endforeach; ?>
             </ul>
         </div>
     </nav>
+    <?php endif; ?>
 </header>
 
 <div
@@ -116,19 +109,26 @@ function nav_link_url(array $link): string
             </button>
         </div>
         <nav class="flex-1 overflow-y-auto px-4 py-6" aria-label="Menú móvil">
+            <?php if (!empty($nav_categorias)): ?>
             <ul class="space-y-1">
-                <?php foreach ($nav_links as $link): ?>
+                <?php foreach ($nav_categorias as $categoria): ?>
+                <?php
+                    $slug = (string)$categoria['slug'];
+                    $isActive = $currentCategoriaSlug !== '' && $currentCategoriaSlug === $slug;
+                ?>
                 <li>
                     <a
-                        href="<?php echo nav_link_url($link); ?>"
-                        class="block py-3 px-2 text-sm font-semibold text-dark hover:bg-cream rounded-lg uppercase tracking-wide"
+                        href="<?php echo htmlspecialchars(category_catalog_url($slug), ENT_QUOTES, 'UTF-8'); ?>"
+                        class="block py-3 px-2 text-sm font-semibold rounded-lg uppercase tracking-wide <?php echo $isActive ? 'text-accent bg-cream' : 'text-dark hover:bg-cream'; ?>"
                         data-action="menu-close"
+                        <?php echo $isActive ? 'aria-current="page"' : ''; ?>
                     >
-                        <?php echo htmlspecialchars($link['label'], ENT_QUOTES, 'UTF-8'); ?>
+                        <?php echo htmlspecialchars((string)$categoria['nombre'], ENT_QUOTES, 'UTF-8'); ?>
                     </a>
                 </li>
                 <?php endforeach; ?>
             </ul>
+            <?php endif; ?>
             <div class="mt-6 pt-6 border-t border-cream space-y-1">
                 <a href="<?php echo page_path('mi-cuenta'); ?>" class="block py-3 px-2 text-sm font-semibold text-dark hover:bg-cream rounded-lg">Mi cuenta</a>
                 <a href="<?php echo page_path('login'); ?>" class="block py-3 px-2 text-sm font-semibold text-dark hover:bg-cream rounded-lg">Ingresar</a>

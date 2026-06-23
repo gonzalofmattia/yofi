@@ -12,7 +12,7 @@
         <?php endif; ?>
     </div>
     <div class="editor-card-body">
-        <p class="text-muted small mb-3">Cada color es una entrada del catálogo con fotos y stock por talle.</p>
+        <p class="text-muted small mb-3">Cada color tiene fotos propias y stock independiente por talle.</p>
 
         <?php if (!empty($coloresDisponibles)): ?>
         <div class="color-new-panel d-none" id="panelNuevoColor">

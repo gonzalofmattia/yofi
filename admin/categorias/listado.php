@@ -9,7 +9,9 @@ $adminSearchAction = 'listado.php';
 $adminSearchQuery = $q;
 $adminSearchPlaceholder = 'Buscar categorías…';
 
-$sql = 'SELECT id_cate, nombre, slug, imagen, publicado, destacado_home FROM tbl_categorias';
+$sql = 'SELECT c.id_cate, c.nombre, c.slug, c.imagen, c.publicado, c.destacado_home,
+        (SELECT COUNT(*) FROM tbl_productos p WHERE p.id_cate = c.id_cate AND p.borrado = 0) AS num_productos
+        FROM tbl_categorias c';
 $params = [];
 $types = '';
 if ($q !== '') {
@@ -39,6 +41,7 @@ include __DIR__ . '/../header.php';
 echo agregado($_GET['agregado'] ?? '', '', 'categoría');
 echo modificado($_GET['modificado'] ?? '', '', 'categoría');
 echo borrado($_GET['borrado'] ?? '', '', 'categoría');
+echo error_admin((string)($_GET['error'] ?? ''));
 ?>
 
 <div class="admin-section-header">
@@ -115,7 +118,8 @@ echo borrado($_GET['borrado'] ?? '', '', 'categoría');
                                     <a href="a_categoria.php?id=<?= (int)$row['id_cate'] ?>" class="btn-table-action" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    <form method="post" action="b_categoria.php" class="d-inline" onsubmit="return confirm('¿Eliminar esta categoría?')">
+                                    <?php $numProd = (int)($row['num_productos'] ?? 0); ?>
+                                    <form method="post" action="b_categoria.php" class="d-inline" onsubmit="if (<?= $numProd ?> > 0) { alert('Esta categoría tiene <?= $numProd ?> producto(s) asignado(s). Reasignalos desde Productos antes de eliminar.'); return false; } return confirm('¿Eliminar esta categoría?');">
                                         <?= admin_csrf_field() ?>
                                         <input type="hidden" name="id_cate" value="<?= (int)$row['id_cate'] ?>">
                                         <button type="submit" class="btn-table-action btn-table-action-danger" title="Eliminar">

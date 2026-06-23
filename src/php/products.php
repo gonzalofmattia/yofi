@@ -26,7 +26,7 @@ function product_effective_price(array $row): float
 }
 
 /**
- * Columnas de listado: una fila por combinación (id_prod, id_color).
+ * Columnas de listado: una fila por combinación producto + color (catálogo).
  */
 function sql_producto_variant_columns(): string
 {
@@ -64,6 +64,24 @@ function sql_producto_variant_columns(): string
          WHERE s5.id_prod = p.id_prod AND s5.id_color = c.id_color AND s5.activo = 1 AND s5.stock > 0) AS talles_disponibles';
 }
 
+/** Una fila por producto padre (uso interno / futuro). */
+function sql_producto_parent_columns(): string
+{
+    return sql_producto_variant_columns();
+}
+
+function product_variant_display_name(string $nombre, string $colorNombre): string
+{
+    $nombre = trim($nombre);
+    $colorNombre = trim($colorNombre);
+
+    if ($colorNombre === '') {
+        return $nombre;
+    }
+
+    return $nombre . ' — ' . $colorNombre;
+}
+
 function map_producto_row(array $row): array
 {
     $precioBase = (float)($row['precio_base'] ?? 0);
@@ -73,6 +91,8 @@ function map_producto_row(array $row): array
     $imagen = $row['imagen_principal'] ?? $row['imagen_fallback'] ?? null;
     $idColor = (int)($row['id_color'] ?? 0);
     $slug = (string)($row['slug'] ?? '');
+    $nombre = (string)($row['nombre'] ?? '');
+    $colorNombre = (string)($row['color_nombre'] ?? '');
 
     $tallesRaw = trim((string)($row['talles_disponibles'] ?? ''));
     $talles = $tallesRaw !== '' ? array_values(array_filter(array_map('trim', explode(',', $tallesRaw)))) : [];
@@ -80,18 +100,19 @@ function map_producto_row(array $row): array
     return [
         'id_prod' => (int)$row['id_prod'],
         'id_color' => $idColor,
-        'nombre' => (string)$row['nombre'],
+        'nombre' => $nombre,
+        'nombre_display' => product_variant_display_name($nombre, $colorNombre),
         'slug' => $slug,
         'precio_base' => $precioBase,
         'precio_oferta' => $precioOferta,
-        'color_nombre' => (string)($row['color_nombre'] ?? ''),
+        'color_nombre' => $colorNombre,
         'hex_code' => (string)($row['hex_code'] ?? ''),
         'imagen_principal' => $imagen ? imgprod_path((string)$imagen) : imgprod_path('placeholder.jpg'),
         'stock_color' => (int)($row['stock_color'] ?? 0),
         'talles' => $talles,
         'promo_badge' => !empty($row['promo_badge']) ? (string)$row['promo_badge'] : null,
         'id_sku_default' => isset($row['id_sku_default']) ? (int)$row['id_sku_default'] : null,
-        'sku_color_nombre' => (string)($row['color_nombre'] ?? ''),
+        'sku_color_nombre' => $colorNombre,
         'sku_color_hex' => (string)($row['hex_code'] ?? ''),
         'sku_talle_nombre' => (string)($row['sku_talle_nombre'] ?? ''),
         'sku_precio' => product_effective_price($row),
@@ -101,8 +122,18 @@ function map_producto_row(array $row): array
 function sql_producto_variant_from(): string
 {
     return 'FROM tbl_productos p
-            INNER JOIN tbl_skus s2 ON s2.id_prod = p.id_prod AND s2.activo = 1
+            INNER JOIN tbl_skus s2 ON s2.id_prod = p.id_prod AND s2.activo = 1 AND s2.stock > 0
             INNER JOIN tbl_colores c ON c.id_color = s2.id_color';
+}
+
+function sql_producto_parent_from(): string
+{
+    return sql_producto_variant_from();
+}
+
+function sql_producto_parent_exists_clause(): string
+{
+    return 'EXISTS (SELECT 1 FROM tbl_skus s2 WHERE s2.id_prod = p.id_prod AND s2.activo = 1)';
 }
 
 function build_variant_filter_clauses(array $filters, array &$params): array
@@ -119,7 +150,7 @@ function build_variant_filter_clauses(array $filters, array &$params): array
         $extra[] = 'EXISTS (
             SELECT 1 FROM tbl_skus sx
             INNER JOIN tbl_talles tx ON tx.id_talle = sx.id_talle
-            WHERE sx.id_prod = p.id_prod AND sx.id_color = c.id_color AND sx.activo = 1
+            WHERE sx.id_prod = p.id_prod AND sx.id_color = c.id_color AND sx.activo = 1 AND sx.stock > 0
             AND tx.nombre IN (' . implode(',', $placeholders) . ')
         )';
     }
@@ -135,6 +166,12 @@ function build_variant_filter_clauses(array $filters, array &$params): array
     }
 
     return $extra;
+}
+
+/** @deprecated Use build_variant_filter_clauses() */
+function build_product_filter_clauses(array $filters, array &$params): array
+{
+    return build_variant_filter_clauses($filters, $params);
 }
 
 /**
@@ -530,6 +567,77 @@ function get_product_skus(int $idProd, ?int $idColor = null): array
     return $stmt->fetchAll();
 }
 
+function get_product_colors(int $idProd): array
+{
+    $pdo = db_ro();
+    $stmt = $pdo->prepare(
+        'SELECT c.id_color, c.nombre AS color_nombre, c.hex_code,
+            COALESCE(
+                (SELECT pi.path FROM tbl_prod_imagenes pi
+                 WHERE pi.id_prod = :id AND pi.id_color = c.id_color AND pi.es_principal = 1 LIMIT 1),
+                (SELECT pi.path FROM tbl_prod_imagenes pi
+                 WHERE pi.id_prod = :id2 AND pi.id_color = c.id_color
+                 ORDER BY pi.orden ASC, pi.id_imagen ASC LIMIT 1)
+            ) AS imagen
+         FROM tbl_skus s
+         INNER JOIN tbl_colores c ON c.id_color = s.id_color
+         WHERE s.id_prod = :id3 AND s.activo = 1
+         GROUP BY c.id_color, c.nombre, c.hex_code
+         ORDER BY c.nombre ASC'
+    );
+    $stmt->execute([
+        ':id' => $idProd,
+        ':id2' => $idProd,
+        ':id3' => $idProd,
+    ]);
+
+    return array_map(static function (array $row): array {
+        $imagen = $row['imagen'] ?? null;
+
+        return [
+            'id_color' => (int)$row['id_color'],
+            'color_nombre' => (string)$row['color_nombre'],
+            'hex_code' => (string)$row['hex_code'],
+            'imagen' => $imagen ? imgprod_path((string)$imagen) : imgprod_path('placeholder.jpg'),
+        ];
+    }, $stmt->fetchAll());
+}
+
+function get_product_color_variants(int $idProd): array
+{
+    $skus = get_product_skus($idProd);
+    $variants = [];
+
+    foreach ($skus as $sku) {
+        $idColor = (int)$sku['id_color'];
+        if (!isset($variants[$idColor])) {
+            $variants[$idColor] = [
+                'id_color' => $idColor,
+                'color_nombre' => (string)$sku['color_nombre'],
+                'hex_code' => (string)$sku['color_hex'],
+                'talles' => [],
+            ];
+        }
+        $idTalle = (int)$sku['id_talle'];
+        $variants[$idColor]['talles'][$idTalle] = [
+            'id_talle' => $idTalle,
+            'nombre' => (string)$sku['talle_nombre'],
+            'orden' => (int)$sku['talle_orden'],
+            'id_sku' => (int)$sku['id_sku'],
+            'stock' => (int)$sku['stock'],
+            'precio_extra' => (float)$sku['precio_extra'],
+        ];
+    }
+
+    foreach ($variants as &$variant) {
+        uasort($variant['talles'], static fn($a, $b) => $a['orden'] <=> $b['orden']);
+        $variant['talles'] = array_values($variant['talles']);
+    }
+    unset($variant);
+
+    return array_values($variants);
+}
+
 function get_product_other_colors(int $idProd, int $excludeColorId): array
 {
     $pdo = db_ro();
@@ -648,6 +756,11 @@ function catalog_query_string(array $filters, array $overrides = []): string
     }
 
     return implode('&', $parts);
+}
+
+function category_catalog_url(string $slug): string
+{
+    return page_path('catalogo') . '&categoria=' . urlencode(trim($slug));
 }
 
 function product_url(string $slug, ?int $idColor = null): string

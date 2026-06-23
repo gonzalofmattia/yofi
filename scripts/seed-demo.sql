@@ -1,5 +1,6 @@
 -- Yofi — Datos de demostración (productos + imágenes + SKUs)
 -- Ejecutar sobre la base `yofi` después de crear-db.sql
+-- Los productos demo se cargan con publicado=0 (visibles solo en admin).
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -23,7 +24,7 @@ INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
 VALUES (1, (SELECT id_cate FROM tbl_categorias WHERE slug = 'vestidos' LIMIT 1), 'Vestido Floral Romántico', 'vestido-floral-romantico',
   'YF-001', 18500, 14900,
   'Vestido de algodón importado con estampado floral.',
-  0.30, 40, 35, 2, 1, 1);
+  0.30, 40, 35, 2, 0, 0);
 
 INSERT INTO tbl_prod_imagenes (id_prod, id_color, path, orden, es_principal)
 VALUES
@@ -44,7 +45,7 @@ INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
 VALUES (2, (SELECT id_cate FROM tbl_categorias WHERE slug = 'abrigos' LIMIT 1), 'Mameluco Tejido Bebé', 'mameluco-tejido-bebe',
   'YF-002', 12900,
   'Mameluco tejido importado, suave al tacto.',
-  0.20, 35, 30, 2, 1, 1);
+  0.20, 35, 30, 2, 0, 0);
 
 INSERT INTO tbl_prod_imagenes (id_prod, id_color, path, orden, es_principal)
 VALUES (2, 3, 'prod-002-rosa-1.jpg', 1, 1);
@@ -61,7 +62,7 @@ INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
 VALUES (3, (SELECT id_cate FROM tbl_categorias WHERE slug = 'buzos' LIMIT 1), 'Buzo Canguro Niño', 'buzo-canguro-nino',
   'YF-003', 15900,
   'Buzo canguro de algodón importado.',
-  0.35, 45, 40, 3, 1, 1);
+  0.35, 45, 40, 3, 0, 0);
 
 INSERT INTO tbl_prod_imagenes (id_prod, id_color, path, orden, es_principal)
 VALUES (3, 7, 'prod-003-beige-1.jpg', 1, 1);
@@ -79,7 +80,7 @@ INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
 VALUES (4, (SELECT id_cate FROM tbl_categorias WHERE slug = 'pantalones' LIMIT 1), 'Conjunto Primavera', 'conjunto-primavera',
   'YF-004', 22000, 17500,
   'Conjunto de dos piezas, top y pantalón.',
-  0.40, 45, 38, 3, 1, 1, 1, '3x2');
+  0.40, 45, 38, 3, 0, 0, 1, '3x2');
 
 INSERT INTO tbl_prod_imagenes (id_prod, id_color, path, orden, es_principal)
 VALUES (4, 1, 'prod-004-blanco-1.jpg', 1, 1);
@@ -95,7 +96,7 @@ INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
 VALUES (5, (SELECT id_cate FROM tbl_categorias WHERE slug = 'abrigos' LIMIT 1), 'Campera Acolchada Niña', 'campera-acolchada-nina',
   'YF-005', 28500,
   'Campera acolchada importada, abrigada y liviana.',
-  0.50, 48, 42, 5, 1, 1);
+  0.50, 48, 42, 5, 0, 0);
 
 INSERT INTO tbl_prod_imagenes (id_prod, id_color, path, orden, es_principal)
 VALUES (5, 6, 'prod-005-verde-1.jpg', 1, 1);

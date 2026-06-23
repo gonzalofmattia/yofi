@@ -14,7 +14,11 @@ require_once __DIR__ . '/../src/php/products.php';
 
 $idProd = (int)($producto['id_prod'] ?? 0);
 $idColor = (int)($producto['id_color'] ?? 0);
-$nombre = htmlspecialchars((string)($producto['nombre'] ?? ''), ENT_QUOTES, 'UTF-8');
+$nombreDisplay = htmlspecialchars(
+    (string)($producto['nombre_display'] ?? $producto['nombre'] ?? ''),
+    ENT_QUOTES,
+    'UTF-8'
+);
 $slug = (string)($producto['slug'] ?? '');
 $precioBase = (float)($producto['precio_base'] ?? 0);
 $precioOferta = isset($producto['precio_oferta']) && $producto['precio_oferta'] !== null && $producto['precio_oferta'] !== ''
@@ -38,10 +42,10 @@ $colorHex = htmlspecialchars((string)($producto['hex_code'] ?? ''), ENT_QUOTES, 
 ?>
 <article class="group relative bg-white" data-product-id="<?php echo $idProd; ?>" data-color-id="<?php echo $idColor; ?>">
     <div class="relative overflow-hidden aspect-[3/4] bg-[#f6f3ef]">
-        <a href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>" class="block absolute inset-0" aria-label="Ver <?php echo $nombre; ?><?php echo $colorNombre !== '' ? ' en ' . $colorNombre : ''; ?>">
+        <a href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>" class="block absolute inset-0" aria-label="Ver <?php echo $nombreDisplay; ?>">
             <img
                 src="<?php echo $imagen; ?>"
-                alt="<?php echo $nombre; ?><?php echo $colorNombre !== '' ? ' — ' . $colorNombre : ''; ?>"
+                alt="<?php echo $nombreDisplay; ?>"
                 loading="lazy"
                 class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
             >
@@ -71,7 +75,7 @@ $colorHex = htmlspecialchars((string)($producto['hex_code'] ?? ''), ENT_QUOTES, 
             data-action="quick-add"
             data-id-sku="<?php echo $idSku; ?>"
             data-id-prod="<?php echo $idProd; ?>"
-            data-nombre="<?php echo $nombre; ?>"
+            data-nombre="<?php echo $nombreDisplay; ?>"
             data-precio="<?php echo $precioMostrar; ?>"
             data-imagen="<?php echo $imagen; ?>"
             data-color-nombre="<?php echo $colorNombre; ?>"
@@ -93,13 +97,9 @@ $colorHex = htmlspecialchars((string)($producto['hex_code'] ?? ''), ENT_QUOTES, 
     <div class="pt-3 pb-6 space-y-1.5">
         <h3 class="text-sm font-semibold truncate">
             <a href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>" class="hover:text-accent transition-colors">
-                <?php echo $nombre; ?>
+                <?php echo $nombreDisplay; ?>
             </a>
         </h3>
-
-        <?php if ($colorNombre !== ''): ?>
-        <p class="text-xs text-earth"><?php echo $colorNombre; ?></p>
-        <?php endif; ?>
 
         <?php if (!empty($talles)): ?>
         <div class="flex flex-wrap gap-1">
