@@ -2,7 +2,7 @@
 /**
  * Tarjeta de producto — recibe $producto con:
  * id_prod, id_color, nombre, slug, precio_base, precio_oferta, imagen_principal,
- * color_nombre, hex_code, talles[], promo_badge
+ * color_nombre, hex_code, talles[], promo_badge, colores[]
  * Opcional: id_sku_default, sku_talle_nombre, sku_precio
  */
 
@@ -14,11 +14,7 @@ require_once __DIR__ . '/../src/php/products.php';
 
 $idProd = (int)($producto['id_prod'] ?? 0);
 $idColor = (int)($producto['id_color'] ?? 0);
-$nombreDisplay = htmlspecialchars(
-    (string)($producto['nombre_display'] ?? $producto['nombre'] ?? ''),
-    ENT_QUOTES,
-    'UTF-8'
-);
+$nombre = htmlspecialchars((string)($producto['nombre'] ?? ''), ENT_QUOTES, 'UTF-8');
 $slug = (string)($producto['slug'] ?? '');
 $precioBase = (float)($producto['precio_base'] ?? 0);
 $precioOferta = isset($producto['precio_oferta']) && $producto['precio_oferta'] !== null && $producto['precio_oferta'] !== ''
@@ -30,6 +26,17 @@ $imagen = htmlspecialchars((string)($producto['imagen_principal'] ?? imgprod_pat
 $badge = !empty($producto['promo_badge']) ? htmlspecialchars((string)$producto['promo_badge'], ENT_QUOTES, 'UTF-8') : '';
 $detailUrl = product_url($slug, $idColor > 0 ? $idColor : null);
 
+$colores = [];
+if (!empty($producto['colores']) && is_array($producto['colores'])) {
+    $colores = $producto['colores'];
+}
+$showSwatches = count($colores) > 1;
+$coloresJson = htmlspecialchars(
+    json_encode($colores, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP),
+    ENT_QUOTES,
+    'UTF-8'
+);
+
 $talles = [];
 if (!empty($producto['talles']) && is_array($producto['talles'])) {
     $talles = $producto['talles'];
@@ -40,14 +47,24 @@ $canQuickAdd = $idSku > 0 && $precioMostrar > 0;
 $colorNombre = htmlspecialchars((string)($producto['color_nombre'] ?? ''), ENT_QUOTES, 'UTF-8');
 $colorHex = htmlspecialchars((string)($producto['hex_code'] ?? ''), ENT_QUOTES, 'UTF-8');
 ?>
-<article class="group relative bg-white" data-product-id="<?php echo $idProd; ?>" data-color-id="<?php echo $idColor; ?>">
+<article
+    class="group relative bg-white"
+    data-product-card
+    data-product-id="<?php echo $idProd; ?>"
+    data-color-id="<?php echo $idColor; ?>"
+    data-product-slug="<?php echo htmlspecialchars($slug, ENT_QUOTES, 'UTF-8'); ?>"
+    data-colores="<?php echo $coloresJson; ?>"
+    data-precio="<?php echo $precioMostrar; ?>"
+    data-nombre="<?php echo $nombre; ?>"
+>
     <div class="relative overflow-hidden aspect-[3/4] bg-[#f6f3ef]">
-        <a href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>" class="block absolute inset-0" aria-label="Ver <?php echo $nombreDisplay; ?>">
+        <a href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>" class="block absolute inset-0" aria-label="Ver <?php echo $nombre; ?>" data-product-link>
             <img
                 src="<?php echo $imagen; ?>"
-                alt="<?php echo $nombreDisplay; ?>"
+                alt="<?php echo $nombre; ?>"
                 loading="lazy"
                 class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                data-card-image
             >
         </a>
 
@@ -75,7 +92,7 @@ $colorHex = htmlspecialchars((string)($producto['hex_code'] ?? ''), ENT_QUOTES, 
             data-action="quick-add"
             data-id-sku="<?php echo $idSku; ?>"
             data-id-prod="<?php echo $idProd; ?>"
-            data-nombre="<?php echo $nombreDisplay; ?>"
+            data-nombre="<?php echo $nombre; ?>"
             data-precio="<?php echo $precioMostrar; ?>"
             data-imagen="<?php echo $imagen; ?>"
             data-color-nombre="<?php echo $colorNombre; ?>"
@@ -88,27 +105,53 @@ $colorHex = htmlspecialchars((string)($producto['hex_code'] ?? ''), ENT_QUOTES, 
         <a
             href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>"
             class="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-primary text-dark text-sm font-bold h-10 flex items-center justify-center z-10"
+            data-product-link
         >
             Ver producto
         </a>
         <?php endif; ?>
     </div>
 
+    <?php if ($showSwatches): ?>
+    <div class="flex flex-wrap gap-1.5 pt-2" role="group" aria-label="Colores disponibles" data-card-swatches>
+        <?php foreach ($colores as $colorOpt): ?>
+        <?php
+            $optId = (int)($colorOpt['id_color'] ?? 0);
+            $isActive = $optId === $idColor;
+            $hex = htmlspecialchars((string)($colorOpt['hex_code'] ?? '#ccc'), ENT_QUOTES, 'UTF-8');
+            $optNombre = htmlspecialchars((string)($colorOpt['color_nombre'] ?? ''), ENT_QUOTES, 'UTF-8');
+        ?>
+        <button
+            type="button"
+            class="h-6 w-6 rounded-full border-2 shrink-0 transition <?php echo $isActive ? 'ring-2 ring-primary ring-offset-1 border-dark' : 'border-cream hover:border-dark'; ?>"
+            style="background: <?php echo $hex; ?>;"
+            data-card-swatch
+            data-color-id="<?php echo $optId; ?>"
+            title="<?php echo $optNombre; ?>"
+            aria-label="<?php echo $optNombre; ?>"
+            aria-pressed="<?php echo $isActive ? 'true' : 'false'; ?>"
+        ></button>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
     <div class="pt-3 pb-6 space-y-1.5">
         <h3 class="text-sm font-semibold truncate">
-            <a href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>" class="hover:text-accent transition-colors">
-                <?php echo $nombreDisplay; ?>
+            <a href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>" class="hover:text-accent transition-colors" data-product-link>
+                <?php echo $nombre; ?>
             </a>
         </h3>
 
         <?php if (!empty($talles)): ?>
-        <div class="flex flex-wrap gap-1">
+        <div class="flex flex-wrap gap-1" data-card-talles>
             <?php foreach ($talles as $talleNombre): ?>
             <span class="inline-flex items-center justify-center min-w-[1.75rem] h-6 px-1.5 text-[10px] font-semibold border border-cream rounded-full text-earth">
                 <?php echo htmlspecialchars((string)$talleNombre, ENT_QUOTES, 'UTF-8'); ?>
             </span>
             <?php endforeach; ?>
         </div>
+        <?php else: ?>
+        <div class="flex flex-wrap gap-1 hidden" data-card-talles></div>
         <?php endif; ?>
 
         <div class="flex items-baseline gap-2">

@@ -15,6 +15,7 @@ $allowed_pages = [
     'login',
     'registro',
     'mi-cuenta',
+    'crear-password',
     'preguntas-frecuentes',
     'envios-devoluciones',
     'guia-talles',

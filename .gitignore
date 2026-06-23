@@ -7,6 +7,7 @@ logs/*.txt
 # Configs locales con credenciales reales
 config/mercadopago.local.php
 config/zipnova.local.php
+config/smtp.local.php
 .env
 
 # Sistema

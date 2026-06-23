@@ -148,7 +148,17 @@ $imagesByColorJson = json_encode($imagesByColor, JSON_UNESCAPED_UNICODE | JSON_H
             </button>
             <?php endforeach; ?>
         </div>
-        <div class="aspect-[3/4] overflow-hidden bg-[#f6f3ef] col-span-2 lg:col-auto">
+        <div class="relative aspect-[3/4] overflow-hidden bg-[#f6f3ef] col-span-2 lg:col-auto">
+            <button
+                type="button"
+                class="absolute top-3 right-3 h-10 w-10 grid place-items-center rounded-full bg-white/90 z-10 shadow-sm"
+                aria-label="Agregar a favoritos"
+                data-action="wishlist-toggle"
+            >
+                <svg class="w-5 h-5 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+            </button>
             <img
                 src="<?php echo htmlspecialchars((string)$imagenes[0]['path'], ENT_QUOTES, 'UTF-8'); ?>"
                 alt="<?php echo htmlspecialchars((string)$producto['nombre'] . ($colorNombre !== '' ? ' — ' . $colorNombre : ''), ENT_QUOTES, 'UTF-8'); ?>"

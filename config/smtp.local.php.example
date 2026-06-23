@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * Copiá este archivo como config/smtp.local.php y completá con las credenciales DonWeb.
+ * config/smtp.local.php está en .gitignore — no commitear credenciales.
+ */
+
+define('SMTP_HOST', 'mail.tudominio.com.ar');
+define('SMTP_PORT', 587);
+define('SMTP_USER', 'no-reply@tudominio.com.ar');
+define('SMTP_PASS', 'TU_CONTRASEÑA_SMTP');
+define('SMTP_SECURE', 'tls');
+define('MAIL_FROM', 'no-reply@tudominio.com.ar');
+define('MAIL_FROM_NAME', 'Yofi');

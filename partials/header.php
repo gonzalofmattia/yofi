@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../src/php/products.php';
+require_once __DIR__ . '/../src/php/auth.php';
 
 $current_page = $page_id ?? 'home';
 $nav_categorias = get_parent_categories();
@@ -40,12 +41,13 @@ $currentCategoriaSlug = isset($_GET['categoria']) ? trim((string)$_GET['categori
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/>
                     </svg>
                 </a>
-                <button type="button" class="p-2 text-dark hover:text-accent transition-colors" aria-label="Lista de deseos">
+                <button type="button" class="relative p-2 text-dark hover:text-accent transition-colors" data-wishlist-trigger aria-label="Lista de deseos">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
                     </svg>
+                    <span data-wishlist-count class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-accent text-white text-[10px] font-bold leading-none" style="display: none;">0</span>
                 </button>
-                <a href="<?php echo page_path('mi-cuenta'); ?>" class="p-2 text-dark hover:text-accent transition-colors" aria-label="Mi cuenta">
+                <a href="<?php echo isUserLoggedIn() ? page_path('mi-cuenta') : page_path('login'); ?>" class="p-2 text-dark hover:text-accent transition-colors" aria-label="Mi cuenta">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                     </svg>
@@ -130,8 +132,13 @@ $currentCategoriaSlug = isset($_GET['categoria']) ? trim((string)$_GET['categori
             </ul>
             <?php endif; ?>
             <div class="mt-6 pt-6 border-t border-cream space-y-1">
+                <?php if (isUserLoggedIn()): ?>
+                <a href="<?php echo page_path('mi-cuenta'); ?>" class="block py-3 px-2 text-sm font-semibold text-dark hover:bg-cream rounded-lg">Mi cuenta</a>
+                <?php else: ?>
                 <a href="<?php echo page_path('mi-cuenta'); ?>" class="block py-3 px-2 text-sm font-semibold text-dark hover:bg-cream rounded-lg">Mi cuenta</a>
                 <a href="<?php echo page_path('login'); ?>" class="block py-3 px-2 text-sm font-semibold text-dark hover:bg-cream rounded-lg">Ingresar</a>
+                <a href="<?php echo page_path('registro'); ?>" class="block py-3 px-2 text-sm font-semibold text-dark hover:bg-cream rounded-lg">Crear cuenta</a>
+                <?php endif; ?>
                 <button type="button" class="block w-full text-left py-3 px-2 text-sm font-semibold text-dark hover:bg-cream rounded-lg" data-cart-trigger>Carrito</button>
             </div>
         </nav>

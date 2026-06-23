@@ -10,6 +10,7 @@ declare(strict_types=1);
 ob_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../src/php/db.php';
+require_once __DIR__ . '/../src/php/auth.php';
 ob_clean();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -184,6 +185,8 @@ try {
 
     $pdo->beginTransaction();
 
+    $usuarioId = getLoggedInUserId();
+
     $lockedStock = [];
     foreach ($aggSkus as $idSku => $qty) {
         $stLock = $pdo->prepare('
@@ -230,12 +233,12 @@ try {
 
     $stmtInsert = $pdo->prepare('
         INSERT INTO tbl_ordenes (
-            numero_orden, estado, nombre, apellido, email, telefono,
+            numero_orden, estado, nombre, apellido, email, usuario_id, telefono,
             direccion, ciudad, provincia, codigo_postal, notas,
             metodo_pago, shipping_method_code, shipping_carrier, shipping_eta, shipping_meta,
             subtotal, envio, total, items
         ) VALUES (
-            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?
@@ -248,6 +251,7 @@ try {
         $nombre,
         $apellido,
         $email,
+        $usuarioId,
         $telefono,
         $direccion,
         $ciudad,
