@@ -5,28 +5,12 @@ require_once __DIR__ . '/../src/php/content.php';
 $page_title = SITE_NAME . ' — Nueva colección Otoño Invierno 2025';
 $meta_description = 'Yofi: ropa romántica para chicos y chicas. Nueva colección Otoño Invierno 2025. Envío a todo el país, cuotas sin interés.';
 
-$categoriasPadre = get_parent_categories(3);
+$categoriasHome = get_featured_home_categories();
 $destacados = get_featured_products(5);
-
-$ageTabs = [
-    ['label' => 'MINI', 'slug' => 'mini'],
-    ['label' => '1 A 4 AÑOS', 'slug' => 'ninas'],
-    ['label' => '4 A 12 AÑOS', 'slug' => 'ninos'],
-];
-
-$subcategoriasPorTab = [];
-foreach ($ageTabs as $tab) {
-    $cat = get_category_by_slug($tab['slug']);
-    $subs = $cat ? get_subcategories((int)$cat['id_cate'], 4) : [];
-    $subcategoriasPorTab[$tab['slug']] = $subs;
-}
-
-$fallbackCards = [
-    ['label' => 'Abrigos', 'slug' => 'abrigos'],
-    ['label' => 'Buzos y Cardigans', 'slug' => 'buzos'],
-    ['label' => 'Pantalones', 'slug' => 'pantalones'],
-    ['label' => 'Remeras', 'slug' => 'remeras'],
-];
+$ageTabs = get_age_filters();
+$edadBanners = get_home_edad_banners();
+$catalogBase = page_path('catalogo');
+$defaultEdadSlug = (string)($ageTabs[0]['slug'] ?? 'mini');
 
 $heroSlides = get_active_slides();
 $heroSlideCount = count($heroSlides);
@@ -142,31 +126,38 @@ $homeBannerCount = count($homeBanners);
     </div>
 </section>
 
-<!-- Category blocks -->
+<!-- Age entry blocks -->
+<?php if (!empty($edadBanners)): ?>
 <section class="grid grid-cols-1 md:grid-cols-3 w-full">
-    <?php foreach ($categoriasPadre as $cat): ?>
+    <?php foreach ($edadBanners as $banner): ?>
     <?php
-        $catImg = !empty($cat['imagen'])
-            ? imgprod_path((string)$cat['imagen'])
-            : imgprod_path('categoria-' . $cat['slug'] . '.jpg');
-        $catUrl = page_path('catalogo') . '&categoria=' . urlencode((string)$cat['slug']);
+        $bannerHref = content_resolve_url(isset($banner['link_url']) ? (string)$banner['link_url'] : null);
+        if ($bannerHref === '') {
+            $bannerHref = $catalogBase . '&edad=' . urlencode((string)$banner['slug']);
+        }
+        $bannerImg = !empty($banner['imagen'])
+            ? imgprod_path((string)$banner['imagen'])
+            : imgprod_path(get_age_filter_fallback_image((string)$banner['slug']));
+        $bannerTitulo = trim((string)($banner['titulo'] ?? ''));
+        $bannerSubtitulo = trim((string)($banner['subtitulo'] ?? ''));
     ?>
-    <a href="<?php echo htmlspecialchars($catUrl, ENT_QUOTES, 'UTF-8'); ?>" class="relative block aspect-[4/5] md:aspect-[3/4] overflow-hidden group">
+    <a href="<?php echo htmlspecialchars($bannerHref, ENT_QUOTES, 'UTF-8'); ?>" class="relative block aspect-[4/5] md:aspect-[3/4] overflow-hidden group">
         <img
-            src="<?php echo htmlspecialchars($catImg, ENT_QUOTES, 'UTF-8'); ?>"
-            alt="<?php echo htmlspecialchars((string)$cat['nombre'], ENT_QUOTES, 'UTF-8'); ?>"
+            src="<?php echo htmlspecialchars($bannerImg, ENT_QUOTES, 'UTF-8'); ?>"
+            alt="<?php echo htmlspecialchars($bannerTitulo, ENT_QUOTES, 'UTF-8'); ?>"
             class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
         >
         <div class="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-transparent"></div>
         <div class="absolute bottom-6 left-6 text-white">
-            <p class="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase"><?php echo htmlspecialchars((string)$cat['nombre'], ENT_QUOTES, 'UTF-8'); ?></p>
-            <?php if (!empty($cat['descripcion'])): ?>
-            <p class="text-sm font-semibold opacity-90">· <?php echo htmlspecialchars((string)$cat['descripcion'], ENT_QUOTES, 'UTF-8'); ?></p>
+            <p class="text-2xl sm:text-3xl font-extrabold tracking-tight uppercase"><?php echo htmlspecialchars($bannerTitulo, ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php if ($bannerSubtitulo !== ''): ?>
+            <p class="text-sm font-semibold opacity-90 mt-1"><?php echo htmlspecialchars($bannerSubtitulo, ENT_QUOTES, 'UTF-8'); ?></p>
             <?php endif; ?>
         </div>
     </a>
     <?php endforeach; ?>
 </section>
+<?php endif; ?>
 
 <!-- Campaign banner -->
 <?php if ($homeBannerCount > 0): ?>
@@ -258,17 +249,23 @@ $homeBannerCount = count($homeBanners);
 </section>
 <?php endif; ?>
 
-<!-- Age tabs + subcategory grid -->
-<section class="py-16 sm:py-24" data-component="age-tabs">
-    <div class="flex justify-center gap-8 sm:gap-16 mb-10 px-4" role="tablist" aria-label="Categorías por edad">
+<!-- Age tabs + featured category slider -->
+<?php if (!empty($categoriasHome)): ?>
+<?php $categoriasSlider = array_merge($categoriasHome, $categoriasHome); ?>
+<section
+    class="py-16 sm:py-24"
+    data-component="category-home-slider"
+    data-catalog-base="<?php echo htmlspecialchars($catalogBase, ENT_QUOTES, 'UTF-8'); ?>"
+    data-default-edad="<?php echo htmlspecialchars($defaultEdadSlug, ENT_QUOTES, 'UTF-8'); ?>"
+>
+    <div class="flex justify-center gap-8 sm:gap-16 mb-10 px-4" role="tablist" aria-label="Filtrar por edad">
         <?php foreach ($ageTabs as $i => $tab): ?>
         <button
             type="button"
             role="tab"
             id="age-tab-<?php echo $i; ?>"
             aria-selected="<?php echo $i === 0 ? 'true' : 'false'; ?>"
-            aria-controls="age-panel-<?php echo $i; ?>"
-            data-age-tab="<?php echo $i; ?>"
+            data-age-tab="<?php echo htmlspecialchars((string)$tab['slug'], ENT_QUOTES, 'UTF-8'); ?>"
             class="age-tab-btn text-sm sm:text-base font-bold tracking-[0.15em] pb-2 border-b-2 transition-colors <?php echo $i === 0 ? 'border-primary text-dark' : 'border-transparent text-earth hover:text-dark'; ?>"
         >
             <?php echo htmlspecialchars($tab['label'], ENT_QUOTES, 'UTF-8'); ?>
@@ -276,50 +273,50 @@ $homeBannerCount = count($homeBanners);
         <?php endforeach; ?>
     </div>
 
-    <?php foreach ($ageTabs as $i => $tab): ?>
-    <?php
-        $cards = $subcategoriasPorTab[$tab['slug']] ?? [];
-        if (count($cards) === 0) {
-            $cards = $fallbackCards;
-            $useFallback = true;
-        } else {
-            $useFallback = false;
-        }
-    ?>
-    <div
-        id="age-panel-<?php echo $i; ?>"
-        role="tabpanel"
-        aria-labelledby="age-tab-<?php echo $i; ?>"
-        class="age-tab-panel grid grid-cols-2 md:grid-cols-4 gap-1 sm:gap-2 px-1 sm:px-2 <?php echo $i === 0 ? '' : 'hidden'; ?>"
-        data-age-panel="<?php echo $i; ?>"
-    >
-        <?php foreach ($cards as $card): ?>
-        <?php
-            if ($useFallback) {
-                $cardLabel = $card['label'];
-                $cardUrl = page_path('catalogo') . '&categoria=' . urlencode($tab['slug']) . '&q=' . urlencode($card['slug']);
-                $cardImg = imgprod_path('subcat-' . $card['slug'] . '.jpg');
-            } else {
-                $cardLabel = (string)$card['nombre'];
-                $cardUrl = page_path('catalogo') . '&categoria=' . urlencode((string)$card['slug']);
-                $cardImg = !empty($card['imagen'])
-                    ? imgprod_path((string)$card['imagen'])
-                    : imgprod_path('subcat-' . $card['slug'] . '.jpg');
-            }
-        ?>
-        <a href="<?php echo htmlspecialchars($cardUrl, ENT_QUOTES, 'UTF-8'); ?>" class="relative block aspect-square overflow-hidden group">
-            <img
-                src="<?php echo htmlspecialchars($cardImg, ENT_QUOTES, 'UTF-8'); ?>"
-                alt="<?php echo htmlspecialchars($cardLabel, ENT_QUOTES, 'UTF-8'); ?>"
-                class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+    <div class="overflow-hidden w-full">
+        <div class="category-home-track flex gap-2 sm:gap-3 w-max px-1 sm:px-2">
+            <?php foreach ($categoriasSlider as $cat): ?>
+            <?php
+                $cardLabel = (string)$cat['nombre'];
+                $cardSlug = (string)$cat['slug'];
+                $cardUrl = $catalogBase
+                    . '&edad=' . urlencode($defaultEdadSlug)
+                    . '&categoria=' . urlencode($cardSlug);
+                $cardImg = !empty($cat['imagen'])
+                    ? imgprod_path((string)$cat['imagen'])
+                    : imgprod_path('subcat-' . $cardSlug . '.jpg');
+            ?>
+            <a
+                href="<?php echo htmlspecialchars($cardUrl, ENT_QUOTES, 'UTF-8'); ?>"
+                data-category-link
+                data-categoria-slug="<?php echo htmlspecialchars($cardSlug, ENT_QUOTES, 'UTF-8'); ?>"
+                class="relative block shrink-0 w-[45vw] sm:w-[32vw] md:w-[24vw] max-w-[320px] aspect-square overflow-hidden group"
             >
-            <div class="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"></div>
-            <p class="absolute bottom-4 left-4 text-white text-lg sm:text-xl font-bold"><?php echo htmlspecialchars($cardLabel, ENT_QUOTES, 'UTF-8'); ?></p>
-        </a>
-        <?php endforeach; ?>
+                <img
+                    src="<?php echo htmlspecialchars($cardImg, ENT_QUOTES, 'UTF-8'); ?>"
+                    alt="<?php echo htmlspecialchars($cardLabel, ENT_QUOTES, 'UTF-8'); ?>"
+                    class="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                >
+                <div class="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent"></div>
+                <p class="absolute bottom-4 left-4 text-white text-lg sm:text-xl font-bold"><?php echo htmlspecialchars($cardLabel, ENT_QUOTES, 'UTF-8'); ?></p>
+            </a>
+            <?php endforeach; ?>
+        </div>
     </div>
-    <?php endforeach; ?>
 </section>
+<style>
+@keyframes yofi-category-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+.category-home-track {
+    animation: yofi-category-marquee 40s linear infinite;
+}
+.category-home-track:hover {
+    animation-play-state: paused;
+}
+</style>
+<?php endif; ?>
 
 <!-- Featured products -->
 <section class="px-4 sm:px-8 py-12">
@@ -495,26 +492,37 @@ $homeBannerCount = count($homeBanners);
 
 <script>
 (function () {
-    var tabs = document.querySelectorAll('[data-age-tab]');
-    var panels = document.querySelectorAll('[data-age-panel]');
-    if (!tabs.length) return;
+    var root = document.querySelector('[data-component="category-home-slider"]');
+    if (!root) return;
+
+    var tabs = root.querySelectorAll('[data-age-tab]');
+    var catalogBase = root.getAttribute('data-catalog-base') || '';
+    var currentEdad = root.getAttribute('data-default-edad') || 'mini';
+
+    function updateCategoryLinks() {
+        root.querySelectorAll('[data-category-link]').forEach(function (link) {
+            var slug = link.getAttribute('data-categoria-slug') || '';
+            if (!slug) return;
+            link.href = catalogBase + '&edad=' + encodeURIComponent(currentEdad) + '&categoria=' + encodeURIComponent(slug);
+        });
+    }
 
     tabs.forEach(function (tab) {
         tab.addEventListener('click', function () {
-            var idx = tab.getAttribute('data-age-tab');
+            currentEdad = tab.getAttribute('data-age-tab') || currentEdad;
             tabs.forEach(function (t) {
-                var active = t.getAttribute('data-age-tab') === idx;
+                var active = t === tab;
                 t.setAttribute('aria-selected', active ? 'true' : 'false');
                 t.classList.toggle('border-primary', active);
                 t.classList.toggle('text-dark', active);
                 t.classList.toggle('border-transparent', !active);
                 t.classList.toggle('text-earth', !active);
             });
-            panels.forEach(function (p) {
-                p.classList.toggle('hidden', p.getAttribute('data-age-panel') !== idx);
-            });
+            updateCategoryLinks();
         });
     });
+
+    updateCategoryLinks();
 })();
 </script>
 

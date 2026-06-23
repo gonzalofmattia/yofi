@@ -9,7 +9,7 @@ $adminSearchAction = 'listado.php';
 $adminSearchQuery = $q;
 $adminSearchPlaceholder = 'Buscar categorías…';
 
-$sql = 'SELECT id_cate, nombre, slug, publicado FROM tbl_categorias';
+$sql = 'SELECT id_cate, nombre, slug, imagen, publicado, destacado_home FROM tbl_categorias';
 $params = [];
 $types = '';
 if ($q !== '') {
@@ -18,7 +18,7 @@ if ($q !== '') {
     $params = [$like, $like];
     $types = 'ss';
 }
-$sql .= ' ORDER BY nombre';
+$sql .= ' ORDER BY orden ASC, nombre';
 
 if ($types !== '') {
     $stmt = mysqli_prepare($con, $sql);
@@ -69,16 +69,25 @@ echo borrado($_GET['borrado'] ?? '', '', 'categoría');
             <table class="admin-table mb-0">
                 <thead>
                     <tr>
+                        <th style="width:56px"></th>
                         <th>Nombre</th>
                         <th>Slug</th>
-                        <th>Estado</th>
+                        <th>Publicada</th>
+                        <th>Destacada</th>
                         <th style="width:88px"></th>
                     </tr>
                 </thead>
                 <tbody>
                 <?php if ($total > 0): ?>
-                    <?php foreach ($rows as $row): ?>
+                    <?php foreach ($rows as $row):
+                        $thumb = !empty($row['imagen'])
+                            ? imgprod_path((string)$row['imagen'])
+                            : imgprod_path('placeholder.jpg');
+                    ?>
                         <tr>
+                            <td>
+                                <img src="<?= htmlspecialchars($thumb, ENT_QUOTES, 'UTF-8') ?>" alt="" class="product-thumb">
+                            </td>
                             <td><?= htmlspecialchars($row['nombre'], ENT_QUOTES, 'UTF-8') ?></td>
                             <td><span class="product-cell-code"><?= htmlspecialchars($row['slug'], ENT_QUOTES, 'UTF-8') ?></span></td>
                             <td>
@@ -87,8 +96,18 @@ echo borrado($_GET['borrado'] ?? '', '', 'categoría');
                                            data-endpoint="<?= htmlspecialchars(app_path('admin/api/toggle-categoria-publicada.php'), ENT_QUOTES, 'UTF-8') ?>"
                                            data-id-key="id_cate"
                                            data-id="<?= (int)$row['id_cate'] ?>"
-                                           aria-label="Categoría <?= (int)$row['publicado'] ? 'activa' : 'inactiva' ?>"
+                                           aria-label="Categoría <?= (int)$row['publicado'] ? 'publicada' : 'no publicada' ?>"
                                            <?= (int)$row['publicado'] ? 'checked' : '' ?>>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input toggle-estado" type="checkbox"
+                                           data-endpoint="<?= htmlspecialchars(app_path('admin/api/toggle-categoria-destacada-home.php'), ENT_QUOTES, 'UTF-8') ?>"
+                                           data-id-key="id_cate"
+                                           data-id="<?= (int)$row['id_cate'] ?>"
+                                           aria-label="Categoría <?= (int)($row['destacado_home'] ?? 0) ? 'destacada en home' : 'no destacada en home' ?>"
+                                           <?= (int)($row['destacado_home'] ?? 0) ? 'checked' : '' ?>>
                                 </div>
                             </td>
                             <td>
@@ -108,7 +127,7 @@ echo borrado($_GET['borrado'] ?? '', '', 'categoría');
                         </tr>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <tr><td colspan="4" class="text-center text-muted py-5"><?= $q !== '' ? 'Sin resultados para esta búsqueda' : 'Sin categorías' ?></td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-5"><?= $q !== '' ? 'Sin resultados para esta búsqueda' : 'Sin categorías' ?></td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>

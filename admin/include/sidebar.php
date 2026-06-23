@@ -54,6 +54,9 @@ function nav_active_dir(string $dir, string $currentPath): string
         <a class="nav-link<?= nav_active('banners.php', $currentScript) ?><?= nav_active('a_banner.php', $currentScript) ?>" href="<?= app_path('admin/banners.php') ?>">
             <i class="bi bi-badge-ad"></i> Banners
         </a>
+        <a class="nav-link<?= nav_active('banners-edad.php', $currentScript) ?><?= nav_active('a_banner_edad.php', $currentScript) ?>" href="<?= app_path('admin/banners-edad.php') ?>">
+            <i class="bi bi-person-badge"></i> Banners de edad
+        </a>
         <a class="nav-link<?= nav_active('empresa.php', $currentScript) ?>" href="<?= app_path('admin/empresa.php') ?>">
             <i class="bi bi-building"></i> Datos de empresa
         </a>

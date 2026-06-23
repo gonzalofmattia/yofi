@@ -137,6 +137,82 @@ function build_variant_filter_clauses(array $filters, array &$params): array
     return $extra;
 }
 
+/**
+ * Filtros de edad del catálogo (no son categorías de producto).
+ *
+ * @return list<array{label: string, slug: string}>
+ */
+function get_age_filters(): array
+{
+    return [
+        ['label' => 'MINI', 'slug' => 'mini'],
+        ['label' => '1 A 4 AÑOS', 'slug' => '1-a-4'],
+        ['label' => '4 A 12 AÑOS', 'slug' => '4-a-12'],
+    ];
+}
+
+function get_age_filter_by_slug(string $slug): ?array
+{
+    $slug = trim($slug);
+    foreach (get_age_filters() as $filter) {
+        if ($filter['slug'] === $slug) {
+            return $filter;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * @return list<string>
+ */
+function get_age_filter_talles(string $slug): array
+{
+    return match ($slug) {
+        'mini' => ['0-3M', '3-6M', '6-12M', '1A', '2A'],
+        '1-a-4' => ['1A', '2A', '3A', '4A'],
+        '4-a-12' => ['4A', '6A', '8A', '10A', '12A'],
+        default => [],
+    };
+}
+
+function get_age_filter_fallback_image(string $slug): string
+{
+    return match ($slug) {
+        'mini' => 'categoria-mini.jpg',
+        '1-a-4' => 'categoria-ninas.jpg',
+        '4-a-12' => 'categoria-ninos.jpg',
+        default => 'placeholder.jpg',
+    };
+}
+
+/**
+ * Resuelve el filtro de edad en talles concretos para la query del catálogo.
+ *
+ * @return array{talle: list<string>, no_results: bool}
+ */
+function resolve_catalog_talle_filters(array $filters): array
+{
+    $talles = $filters['talle'];
+    $noResults = false;
+
+    if ($filters['edad'] !== '') {
+        $ageTalles = get_age_filter_talles($filters['edad']);
+        if ($ageTalles === []) {
+            $noResults = true;
+        } elseif ($talles === []) {
+            $talles = $ageTalles;
+        } else {
+            $talles = array_values(array_intersect($talles, $ageTalles));
+            if ($talles === []) {
+                $noResults = true;
+            }
+        }
+    }
+
+    return ['talle' => $talles, 'no_results' => $noResults];
+}
+
 function get_parent_categories(int $limit = 0): array
 {
     $pdo = db_ro();
@@ -149,6 +225,18 @@ function get_parent_categories(int $limit = 0): array
     $stmt = $pdo->query($sql);
 
     return $stmt->fetchAll();
+}
+
+function get_featured_home_categories(): array
+{
+    $pdo = db_ro();
+    $stmt = $pdo->query(
+        'SELECT * FROM tbl_categorias
+         WHERE id_cate_padre IS NULL AND publicado = 1 AND destacado_home = 1
+         ORDER BY orden ASC, nombre ASC'
+    );
+
+    return $stmt ? $stmt->fetchAll() : [];
 }
 
 function get_category_by_slug(string $slug): ?array
@@ -220,6 +308,7 @@ function parse_catalog_filters(): array
 {
     $filters = [
         'categoria' => isset($_GET['categoria']) ? trim((string)$_GET['categoria']) : '',
+        'edad' => isset($_GET['edad']) ? trim((string)$_GET['edad']) : '',
         'talle' => [],
         'color' => [],
         'precio_min' => null,
@@ -228,6 +317,10 @@ function parse_catalog_filters(): array
         'ofertas' => !empty($_GET['ofertas']),
         'q' => isset($_GET['q']) ? trim((string)$_GET['q']) : '',
     ];
+
+    if ($filters['edad'] !== '' && get_age_filter_by_slug($filters['edad']) === null) {
+        $filters['edad'] = '';
+    }
 
     if (isset($_GET['talle'])) {
         $talles = is_array($_GET['talle']) ? $_GET['talle'] : [$_GET['talle']];
@@ -292,7 +385,15 @@ function build_catalog_query(array $filters, bool $countOnly, int $page = 1, int
         $params[':precio_max'] = $filters['precio_max'];
     }
 
-    $variantFilters = build_variant_filter_clauses($filters, $params);
+    $talleFilters = resolve_catalog_talle_filters($filters);
+    if ($talleFilters['no_results']) {
+        $conditions[] = '1 = 0';
+    }
+
+    $variantFilters = build_variant_filter_clauses(
+        array_merge($filters, ['talle' => $talleFilters['talle']]),
+        $params
+    );
     $conditions = array_merge($conditions, $variantFilters);
 
     $where = 'WHERE ' . implode(' AND ', $conditions);
@@ -520,6 +621,9 @@ function catalog_query_string(array $filters, array $overrides = []): string
 
     if ($merged['categoria'] !== '') {
         $parts[] = 'categoria=' . urlencode($merged['categoria']);
+    }
+    if ($merged['edad'] !== '') {
+        $parts[] = 'edad=' . urlencode($merged['edad']);
     }
     if (!empty($merged['ofertas'])) {
         $parts[] = 'ofertas=1';

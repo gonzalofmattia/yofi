@@ -16,11 +16,17 @@ if ($filters['categoria'] !== '') {
     $categoriaActual = get_category_by_slug($filters['categoria']);
 }
 
+$edadActual = $filters['edad'] !== '' ? get_age_filter_by_slug($filters['edad']) : null;
+
 $tituloCatalogo = 'Catálogo';
 if ($filters['ofertas']) {
     $tituloCatalogo = 'Ofertas';
+} elseif ($categoriaActual && $edadActual) {
+    $tituloCatalogo = (string)$categoriaActual['nombre'] . ' · ' . $edadActual['label'];
 } elseif ($categoriaActual) {
     $tituloCatalogo = (string)$categoriaActual['nombre'];
+} elseif ($edadActual) {
+    $tituloCatalogo = $edadActual['label'];
 } elseif ($filters['q'] !== '') {
     $tituloCatalogo = 'Resultados: ' . $filters['q'];
 }
@@ -40,6 +46,12 @@ $precioMinVal = $filters['precio_min'] !== null ? (int)$filters['precio_min'] : 
 $precioMaxVal = $filters['precio_max'] !== null ? (int)$filters['precio_max'] : $precioSliderMax;
 
 $activeFilters = [];
+if ($edadActual) {
+    $activeFilters[] = ['type' => 'edad', 'value' => $edadActual['slug'], 'label' => $edadActual['label']];
+}
+if ($categoriaActual) {
+    $activeFilters[] = ['type' => 'categoria', 'value' => (string)$categoriaActual['slug'], 'label' => (string)$categoriaActual['nombre']];
+}
 foreach ($filters['talle'] as $t) {
     $activeFilters[] = ['type' => 'talle', 'value' => $t, 'label' => $t];
 }
@@ -57,6 +69,23 @@ function catalog_page_url(array $filters, int $pageNum): string
     $qs = catalog_query_string($filters, ['pagina' => $pageNum]);
     $base = page_path('catalogo');
     return $qs !== '' ? $base . '&' . $qs . '&pagina=' . $pageNum : $base . '&pagina=' . $pageNum;
+}
+
+$clearSidebarFilters = [
+    'categoria' => $filters['categoria'],
+    'edad' => $filters['edad'],
+    'talle' => [],
+    'color' => [],
+    'precio_min' => null,
+    'precio_max' => null,
+    'orden' => '',
+    'ofertas' => $filters['ofertas'],
+    'q' => $filters['q'],
+];
+$clearSidebarUrl = page_path('catalogo');
+$clearSidebarQs = catalog_query_string($clearSidebarFilters);
+if ($clearSidebarQs !== '') {
+    $clearSidebarUrl .= '&' . $clearSidebarQs;
 }
 ?>
 
@@ -86,8 +115,12 @@ function catalog_page_url(array $filters, int $pageNum): string
         $removeFilters = $filters;
         if ($af['type'] === 'talle') {
             $removeFilters['talle'] = array_values(array_filter($removeFilters['talle'], static fn($t) => $t !== $af['value']));
-        } else {
+        } elseif ($af['type'] === 'color') {
             $removeFilters['color'] = array_values(array_filter($removeFilters['color'], static fn($c) => (string)$c !== $af['value']));
+        } elseif ($af['type'] === 'edad') {
+            $removeFilters['edad'] = '';
+        } elseif ($af['type'] === 'categoria') {
+            $removeFilters['categoria'] = '';
         }
         $removeUrl = page_path('catalogo') . '&' . catalog_query_string($removeFilters);
     ?>
@@ -113,10 +146,16 @@ function catalog_page_url(array $filters, int $pageNum): string
             <?php if ($filters['q'] !== ''): ?>
             <input type="hidden" name="q" value="<?php echo htmlspecialchars($filters['q'], ENT_QUOTES, 'UTF-8'); ?>">
             <?php endif; ?>
+            <?php if ($filters['edad'] !== ''): ?>
+            <input type="hidden" name="edad" value="<?php echo htmlspecialchars($filters['edad'], ENT_QUOTES, 'UTF-8'); ?>">
+            <?php endif; ?>
+            <?php if ($filters['categoria'] !== ''): ?>
+            <input type="hidden" name="categoria" value="<?php echo htmlspecialchars($filters['categoria'], ENT_QUOTES, 'UTF-8'); ?>">
+            <?php endif; ?>
 
             <div class="flex items-center justify-between mb-6">
                 <h3 class="font-extrabold text-lg">Filtros</h3>
-                <a href="<?php echo page_path('catalogo'); ?><?php echo $filters['categoria'] !== '' ? '&categoria=' . urlencode($filters['categoria']) : ''; ?>" class="text-xs underline text-earth">Limpiar todo</a>
+                <a href="<?php echo htmlspecialchars($clearSidebarUrl, ENT_QUOTES, 'UTF-8'); ?>" class="text-xs underline text-earth">Limpiar todo</a>
             </div>
 
             <div class="border-b border-cream">
@@ -264,6 +303,15 @@ function catalog_page_url(array $filters, int $pageNum): string
             <p class="text-sm text-earth"><?php echo (int)$total; ?> producto<?php echo $total === 1 ? '' : 's'; ?></p>
             <form method="get" action="<?php echo page_path('catalogo'); ?>" class="flex items-center gap-2 text-sm">
                 <input type="hidden" name="p" value="catalogo">
+                <?php if ($filters['ofertas']): ?>
+                <input type="hidden" name="ofertas" value="1">
+                <?php endif; ?>
+                <?php if ($filters['q'] !== ''): ?>
+                <input type="hidden" name="q" value="<?php echo htmlspecialchars($filters['q'], ENT_QUOTES, 'UTF-8'); ?>">
+                <?php endif; ?>
+                <?php if ($filters['edad'] !== ''): ?>
+                <input type="hidden" name="edad" value="<?php echo htmlspecialchars($filters['edad'], ENT_QUOTES, 'UTF-8'); ?>">
+                <?php endif; ?>
                 <?php if ($filters['categoria'] !== ''): ?>
                 <input type="hidden" name="categoria" value="<?php echo htmlspecialchars($filters['categoria'], ENT_QUOTES, 'UTF-8'); ?>">
                 <?php endif; ?>
@@ -297,6 +345,15 @@ function catalog_page_url(array $filters, int $pageNum): string
                 <?php /* Reutiliza el mismo form en móvil copiando estructura simplificada */ ?>
                 <form method="get" action="<?php echo page_path('catalogo'); ?>">
                     <input type="hidden" name="p" value="catalogo">
+                    <?php if ($filters['ofertas']): ?>
+                    <input type="hidden" name="ofertas" value="1">
+                    <?php endif; ?>
+                    <?php if ($filters['q'] !== ''): ?>
+                    <input type="hidden" name="q" value="<?php echo htmlspecialchars($filters['q'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php endif; ?>
+                    <?php if ($filters['edad'] !== ''): ?>
+                    <input type="hidden" name="edad" value="<?php echo htmlspecialchars($filters['edad'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php endif; ?>
                     <?php if ($filters['categoria'] !== ''): ?>
                     <input type="hidden" name="categoria" value="<?php echo htmlspecialchars($filters['categoria'], ENT_QUOTES, 'UTF-8'); ?>">
                     <?php endif; ?>

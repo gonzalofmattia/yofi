@@ -2,9 +2,9 @@
 $current_page = $page_id ?? 'home';
 
 $nav_links = [
-    ['slug' => 'catalogo', 'label' => 'MINI', 'query' => 'categoria=mini'],
-    ['slug' => 'catalogo', 'label' => '1 A 4 AÑOS', 'query' => 'categoria=1-a-4'],
-    ['slug' => 'catalogo', 'label' => '4 A 12 AÑOS', 'query' => 'categoria=4-a-12'],
+    ['slug' => 'catalogo', 'label' => 'MINI', 'query' => 'edad=mini'],
+    ['slug' => 'catalogo', 'label' => '1 A 4 AÑOS', 'query' => 'edad=1-a-4'],
+    ['slug' => 'catalogo', 'label' => '4 A 12 AÑOS', 'query' => 'edad=4-a-12'],
     ['slug' => 'catalogo', 'label' => 'ACCESORIOS', 'query' => 'categoria=accesorios'],
     ['slug' => 'catalogo', 'label' => 'CALZADO', 'query' => 'categoria=calzado'],
     ['slug' => 'catalogo', 'label' => 'OFERTAS', 'query' => 'ofertas=1'],

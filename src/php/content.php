@@ -50,6 +50,21 @@ function content_resolve_url(?string $url): string
 }
 
 /**
+ * @return list<array<string, mixed>>
+ */
+function get_home_edad_banners(): array
+{
+    $stmt = db_ro()->query(
+        'SELECT id_edad_banner, slug, titulo, subtitulo, imagen, link_url, orden
+         FROM tbl_home_edad_banners
+         WHERE activo = 1
+         ORDER BY orden ASC, id_edad_banner ASC'
+    );
+
+    return $stmt ? $stmt->fetchAll() : [];
+}
+
+/**
  * @return array<string, string>
  */
 function empresa_config_get_all(): array

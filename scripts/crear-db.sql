@@ -18,6 +18,7 @@ CREATE TABLE `tbl_categorias` (
   `seo_description` text,
   `orden` int DEFAULT 0,
   `publicado` tinyint DEFAULT 1,
+  `destacado_home` tinyint DEFAULT 0,
   PRIMARY KEY (`id_cate`),
   UNIQUE KEY `slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -270,13 +271,14 @@ INSERT INTO `tbl_colores` (`nombre`, `hex_code`) VALUES
 ('Beige','#FAE1C8'),('Lila','#C4A8D4'),('Naranja','#FAAF7D'),
 ('Amarillo','#F9E784');
 
-INSERT INTO `tbl_categorias` (`nombre`,`slug`,`orden`) VALUES
-('Mini 0-2 años','mini',1),
-('Niñas','ninas',2),
-('Niños','ninos',3),
-('Accesorios','accesorios',4),
-('Calzado','calzado',5),
-('Ofertas','ofertas',6);
+INSERT INTO `tbl_categorias` (`nombre`,`slug`,`descripcion`,`orden`) VALUES
+('Abrigos','abrigos','Abrigos, camperas y abrigos',1),
+('Buzos y Cardigans','buzos','Buzos, sweaters y cardigans',2),
+('Pantalones','pantalones','Pantalones y joggers',3),
+('Remeras','remeras','Remeras y tops',4),
+('Vestidos','vestidos','Vestidos y polleras',5),
+('Accesorios','accesorios',NULL,6),
+('Calzado','calzado',NULL,7);
 
 -- 2026-06-16 — Schema inicial Yofi v1.0
 
@@ -347,6 +349,25 @@ CREATE TABLE IF NOT EXISTS `tbl_banners` (
   `activo` tinyint DEFAULT 1,
   PRIMARY KEY (`id_banner`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Banners de edad del home (MINI, 1 a 4, 4 a 12)
+CREATE TABLE IF NOT EXISTS `tbl_home_edad_banners` (
+  `id_edad_banner` int NOT NULL AUTO_INCREMENT,
+  `slug` varchar(20) NOT NULL,
+  `titulo` varchar(150) NOT NULL,
+  `subtitulo` varchar(255) DEFAULT NULL,
+  `imagen` varchar(250) DEFAULT NULL,
+  `link_url` varchar(255) DEFAULT NULL,
+  `orden` int DEFAULT 0,
+  `activo` tinyint DEFAULT 1,
+  PRIMARY KEY (`id_edad_banner`),
+  UNIQUE KEY `slug` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `tbl_home_edad_banners` (`slug`, `titulo`, `link_url`, `orden`, `activo`) VALUES
+  ('mini', 'MINI', 'index.php?p=catalogo&edad=mini', 1, 1),
+  ('1-a-4', '1 A 4 AÑOS', 'index.php?p=catalogo&edad=1-a-4', 2, 1),
+  ('4-a-12', '4 A 12 AÑOS', 'index.php?p=catalogo&edad=4-a-12', 3, 1);
 
 -- Datos generales de la empresa (clave-valor)
 CREATE TABLE IF NOT EXISTS `tbl_config_empresa` (

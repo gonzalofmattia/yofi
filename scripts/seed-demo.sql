@@ -8,9 +8,11 @@ DELETE FROM tbl_skus WHERE id_prod BETWEEN 1 AND 5;
 DELETE FROM tbl_prod_imagenes WHERE id_prod BETWEEN 1 AND 5;
 DELETE FROM tbl_productos WHERE id_prod BETWEEN 1 AND 5;
 
-UPDATE tbl_categorias SET imagen = 'cat-mini.jpg' WHERE slug = 'mini';
-UPDATE tbl_categorias SET imagen = 'cat-ninas.jpg' WHERE slug = 'ninas';
-UPDATE tbl_categorias SET imagen = 'cat-ninos.jpg' WHERE slug = 'ninos';
+UPDATE tbl_categorias SET imagen = 'subcat-abrigos.jpg' WHERE slug = 'abrigos';
+UPDATE tbl_categorias SET imagen = 'subcat-buzos.jpg' WHERE slug = 'buzos';
+UPDATE tbl_categorias SET imagen = 'subcat-pantalones.jpg' WHERE slug = 'pantalones';
+UPDATE tbl_categorias SET imagen = 'subcat-remeras.jpg' WHERE slug = 'remeras';
+UPDATE tbl_categorias SET imagen = 'subcat-vestidos.jpg' WHERE slug = 'vestidos';
 UPDATE tbl_categorias SET imagen = 'cat-accesorios.jpg' WHERE slug = 'accesorios';
 UPDATE tbl_categorias SET imagen = 'cat-calzado.jpg' WHERE slug = 'calzado';
 
@@ -18,7 +20,7 @@ UPDATE tbl_categorias SET imagen = 'cat-calzado.jpg' WHERE slug = 'calzado';
 INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
   precio_oferta, descripcion, peso, alto, ancho, profundidad,
   publicado, destacado)
-VALUES (1, 2, 'Vestido Floral Romántico', 'vestido-floral-romantico',
+VALUES (1, (SELECT id_cate FROM tbl_categorias WHERE slug = 'vestidos' LIMIT 1), 'Vestido Floral Romántico', 'vestido-floral-romantico',
   'YF-001', 18500, 14900,
   'Vestido de algodón importado con estampado floral.',
   0.30, 40, 35, 2, 1, 1);
@@ -39,7 +41,7 @@ VALUES
 -- Producto 2
 INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
   descripcion, peso, alto, ancho, profundidad, publicado, destacado)
-VALUES (2, 1, 'Mameluco Tejido Bebé', 'mameluco-tejido-bebe',
+VALUES (2, (SELECT id_cate FROM tbl_categorias WHERE slug = 'abrigos' LIMIT 1), 'Mameluco Tejido Bebé', 'mameluco-tejido-bebe',
   'YF-002', 12900,
   'Mameluco tejido importado, suave al tacto.',
   0.20, 35, 30, 2, 1, 1);
@@ -56,7 +58,7 @@ VALUES
 -- Producto 3
 INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
   descripcion, peso, alto, ancho, profundidad, publicado, destacado)
-VALUES (3, 3, 'Buzo Canguro Niño', 'buzo-canguro-nino',
+VALUES (3, (SELECT id_cate FROM tbl_categorias WHERE slug = 'buzos' LIMIT 1), 'Buzo Canguro Niño', 'buzo-canguro-nino',
   'YF-003', 15900,
   'Buzo canguro de algodón importado.',
   0.35, 45, 40, 3, 1, 1);
@@ -74,7 +76,7 @@ VALUES
 INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
   precio_oferta, descripcion, peso, alto, ancho, profundidad,
   publicado, destacado, oferta, promo_badge)
-VALUES (4, 2, 'Conjunto Primavera', 'conjunto-primavera',
+VALUES (4, (SELECT id_cate FROM tbl_categorias WHERE slug = 'pantalones' LIMIT 1), 'Conjunto Primavera', 'conjunto-primavera',
   'YF-004', 22000, 17500,
   'Conjunto de dos piezas, top y pantalón.',
   0.40, 45, 38, 3, 1, 1, 1, '3x2');
@@ -90,7 +92,7 @@ VALUES
 -- Producto 5
 INSERT INTO tbl_productos (id_prod, id_cate, nombre, slug, codigo, precio_base,
   descripcion, peso, alto, ancho, profundidad, publicado, destacado)
-VALUES (5, 2, 'Campera Acolchada Niña', 'campera-acolchada-nina',
+VALUES (5, (SELECT id_cate FROM tbl_categorias WHERE slug = 'abrigos' LIMIT 1), 'Campera Acolchada Niña', 'campera-acolchada-nina',
   'YF-005', 28500,
   'Campera acolchada importada, abrigada y liviana.',
   0.50, 48, 42, 5, 1, 1);
