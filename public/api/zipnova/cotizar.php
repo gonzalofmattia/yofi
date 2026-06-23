@@ -6,6 +6,7 @@ header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 
 require_once __DIR__ . '/../../../config.php';
+require_once __DIR__ . '/../../../src/php/auth.php';
 require_once __DIR__ . '/../../../src/php/shipping.php';
 
 function json_response(array $payload, int $statusCode = 200): void
@@ -17,6 +18,11 @@ function json_response(array $payload, int $statusCode = 200): void
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['success' => false, 'error' => 'Método no permitido'], 405);
+}
+
+$csrf = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+if (!validatePublicCsrfToken(is_string($csrf) ? $csrf : null)) {
+    json_response(['success' => false, 'error' => 'Token de seguridad inválido'], 403);
 }
 
 $raw = file_get_contents('php://input');

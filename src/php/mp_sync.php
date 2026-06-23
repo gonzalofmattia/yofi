@@ -7,6 +7,7 @@ declare(strict_types=1);
  */
 
 require_once dirname(__DIR__, 2) . '/config/mercadopago.php';
+require_once __DIR__ . '/stock_reservation.php';
 
 function mp_sync_log(string $message, string $type = 'INFO'): void
 {
@@ -106,97 +107,21 @@ function mp_sync_column_exists(PDO $pdo, string $table, string $column): bool
 }
 
 /**
- * Descuenta stock por SKU al confirmar pago MP.
- * Si el stock es insuficiente, loguea y continúa (el pago ya está aprobado).
+ * Confirma reserva de stock al acreditar pago MP (descuento definitivo).
  *
  * @param array<string, mixed> $orderRow
  */
+function mp_sync_confirm_sku_stock(PDO $pdo, array $orderRow): void
+{
+    stock_confirm_order_reservation($pdo, $orderRow);
+}
+
+/**
+ * @deprecated Usar mp_sync_confirm_sku_stock
+ */
 function mp_sync_deduct_sku_stock(PDO $pdo, array $orderRow): void
 {
-    $orderId = (int)($orderRow['id_orden'] ?? 0);
-    if ($orderId <= 0) {
-        return;
-    }
-
-    $items = json_decode((string)($orderRow['items'] ?? '[]'), true);
-    if (!is_array($items) || $items === []) {
-        return;
-    }
-
-    $bySku = [];
-    foreach ($items as $item) {
-        if (!is_array($item)) {
-            continue;
-        }
-        $idSku = (int)($item['id_sku'] ?? 0);
-        $qty = max(1, (int)($item['cantidad'] ?? $item['quantity'] ?? 1));
-        if ($idSku <= 0) {
-            continue;
-        }
-        $bySku[$idSku] = ($bySku[$idSku] ?? 0) + $qty;
-    }
-
-    if ($bySku === []) {
-        return;
-    }
-
-    $stmtCheckLog = $pdo->prepare('SELECT COUNT(*) FROM tbl_stock_log WHERE orden_id = ? AND motivo = ?');
-    $stmtCheckLog->execute([$orderId, 'venta']);
-    if ((int)$stmtCheckLog->fetchColumn() > 0) {
-        return;
-    }
-
-    $stmtUpdate = $pdo->prepare('
-        UPDATE tbl_skus
-        SET stock = stock - ?
-        WHERE id_sku = ? AND stock >= ?
-    ');
-
-    foreach ($bySku as $idSku => $qty) {
-        $idSku = (int)$idSku;
-        $qty = (int)$qty;
-
-        $stmtSel = $pdo->prepare('SELECT stock, id_prod FROM tbl_skus WHERE id_sku = ? LIMIT 1');
-        $stmtSel->execute([$idSku]);
-        $row = $stmtSel->fetch(PDO::FETCH_ASSOC);
-        if (!$row) {
-            mp_sync_log("SKU {$idSku} no encontrado al descontar stock order_id={$orderId}", 'WARN');
-            continue;
-        }
-
-        $prev = (int)$row['stock'];
-        $stmtUpdate->execute([$qty, $idSku, $qty]);
-        $affected = $stmtUpdate->rowCount();
-
-        if ($affected === 0) {
-            mp_sync_log(
-                "Stock insuficiente SKU {$idSku} order_id={$orderId} solicitado={$qty} disponible={$prev}",
-                'WARN'
-            );
-            continue;
-        }
-
-        try {
-            $stmtLog = $pdo->prepare('
-                INSERT INTO tbl_stock_log
-                    (producto_id, cantidad_anterior, cantidad_nueva, diferencia, motivo, orden_id, usuario_admin, nota)
-                VALUES
-                    (?, ?, ?, ?, ?, ?, ?, ?)
-            ');
-            $stmtLog->execute([
-                (int)$row['id_prod'],
-                $prev,
-                $prev - $qty,
-                -$qty,
-                'venta',
-                $orderId,
-                'MercadoPago',
-                'Descuento post-pago MP SKU ' . $idSku,
-            ]);
-        } catch (Throwable $e) {
-            mp_sync_log('Error tbl_stock_log SKU ' . $idSku . ': ' . $e->getMessage(), 'ERROR');
-        }
-    }
+    mp_sync_confirm_sku_stock($pdo, $orderRow);
 }
 
 /**
@@ -204,6 +129,8 @@ function mp_sync_deduct_sku_stock(PDO $pdo, array $orderRow): void
  */
 function mp_mercadopago_sync_payment(PDO $pdo, string $paymentId): void
 {
+    stock_expire_pending_reservations($pdo);
+
     $paymentId = trim($paymentId);
     if ($paymentId === '') {
         return;
@@ -405,7 +332,9 @@ function mp_mercadopago_sync_payment(PDO $pdo, string $paymentId): void
     }
 
     if ($estadoNuevo === 'confirmado') {
-        mp_sync_deduct_sku_stock($pdo, $orderRow);
+        mp_sync_confirm_sku_stock($pdo, $orderRow);
+    } elseif ($estadoNuevo === 'cancelado') {
+        stock_release_order_reservation($pdo, $orderRow, 'Pago rechazado/cancelado MercadoPago');
     }
 
     try {

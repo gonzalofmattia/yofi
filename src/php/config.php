@@ -5,6 +5,12 @@
  * Detecta automáticamente el entorno y usa las credenciales correctas.
  */
 
+if (!defined('YOFI_PROJECT_ROOT')) {
+    define('YOFI_PROJECT_ROOT', dirname(__DIR__, 2));
+}
+
+require_once __DIR__ . '/url_helpers.php';
+
 if (!function_exists('detectEnvironmentFront')) {
     function detectEnvironmentFront(): string
     {
@@ -67,13 +73,9 @@ if ($detectedEnv === 'local') {
     $dbName = getenv('DB_NAME') ?: 'yofi_prod';
 }
 
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$protocol = yofi_request_protocol();
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
-if ($scriptDir === '/' || $scriptDir === '.') {
-    $scriptDir = '';
-}
-$basePath = ($scriptDir !== '' ? '/' . ltrim($scriptDir, '/') : '');
+$basePath = yofi_app_base_path();
 
 if (!defined('ENV')) {
     define('ENV', getenv('APP_ENV') ?: ($detectedEnv === 'local' ? 'dev' : 'prod'));
@@ -100,7 +102,7 @@ if (!defined('CACHE_TTL')) {
     define('CACHE_TTL', (int)(getenv('CACHE_TTL') ?: 120));
 }
 if (!defined('SITE_URL')) {
-    define('SITE_URL', $protocol . '://' . $host . $basePath);
+    define('SITE_URL', yofi_site_url());
 }
 if (!defined('SITE_NAME')) {
     define('SITE_NAME', 'Yofi');

@@ -215,7 +215,8 @@ function sql_producto_parent_stock_exists(): string
 {
     return 'EXISTS (
         SELECT 1 FROM tbl_skus s2
-        WHERE s2.id_prod = p.id_prod AND s2.activo = 1 AND s2.stock > 0
+        WHERE s2.id_prod = p.id_prod AND s2.activo = 1
+          AND (s2.stock - COALESCE(s2.stock_reservado, 0)) > 0
     )';
 }
 
@@ -712,7 +713,7 @@ function get_product_color_variants(int $idProd): array
             'nombre' => (string)$sku['talle_nombre'],
             'orden' => (int)$sku['talle_orden'],
             'id_sku' => (int)$sku['id_sku'],
-            'stock' => (int)$sku['stock'],
+            'stock' => max(0, (int)$sku['stock'] - (int)($sku['stock_reservado'] ?? 0)),
             'precio_extra' => (float)$sku['precio_extra'],
         ];
     }

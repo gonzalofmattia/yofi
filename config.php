@@ -1,4 +1,9 @@
 <?php
+if (!defined('YOFI_PROJECT_ROOT')) {
+    define('YOFI_PROJECT_ROOT', __DIR__);
+}
+
+require_once __DIR__ . '/src/php/url_helpers.php';
 require_once __DIR__ . '/src/php/config.php';
 require_once __DIR__ . '/config/mercadopago.php';
 require_once __DIR__ . '/config/zipnova.php';
@@ -8,16 +13,12 @@ if (!defined('INTERNAL_API_KEY')) {
     define('INTERNAL_API_KEY', getenv('INTERNAL_API_KEY') ?: '');
 }
 
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$protocol = yofi_request_protocol();
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$scriptDir = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
-
-if ($scriptDir === '/' || $scriptDir === '.') {
-    $scriptDir = '';
-}
+$scriptDir = yofi_app_base_path();
 
 define('BASE_PATH', $scriptDir);
-define('BASE_URL', $protocol . '://' . $host . ($scriptDir ? '/' . ltrim($scriptDir, '/') : ''));
+define('BASE_URL', $protocol . '://' . $host . ($scriptDir !== '' ? $scriptDir : ''));
 
 define('SITE_DESCRIPTION', 'Ropa infantil con estilo para los más chicos.');
 define('SITE_KEYWORDS', 'ropa infantil, niños, bebés, moda kids, Yofi');

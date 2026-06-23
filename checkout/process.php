@@ -11,6 +11,7 @@ ob_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../src/php/db.php';
 require_once __DIR__ . '/../src/php/auth.php';
+require_once __DIR__ . '/../src/php/stock_reservation.php';
 ob_clean();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -45,6 +46,11 @@ function checkout_aggregate_skus(array $items): array
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     checkout_json(['success' => false, 'message' => 'Método no permitido'], 405);
+}
+
+$csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+if (!validatePublicCsrfToken(is_string($csrfHeader) ? $csrfHeader : null)) {
+    checkout_json(['success' => false, 'message' => 'Token de seguridad inválido. Recargá la página.'], 403);
 }
 
 $input = file_get_contents('php://input');
@@ -181,21 +187,24 @@ if ($aggSkus === []) {
 
 try {
     $pdo = db_rw();
+    stock_expire_pending_reservations($pdo);
+
     $numeroOrden = 'ORD-' . date('Ymd') . '-' . strtoupper(substr(uniqid(), -6));
 
     $pdo->beginTransaction();
 
     $usuarioId = getLoggedInUserId();
 
+    $dispSql = stock_disponible_sql('s');
     $lockedStock = [];
     foreach ($aggSkus as $idSku => $qty) {
-        $stLock = $pdo->prepare('
-            SELECT s.stock, s.id_prod, p.nombre
+        $stLock = $pdo->prepare("
+            SELECT s.id_sku, s.stock, s.id_prod, p.nombre, {$dispSql} AS disponible
             FROM tbl_skus s
             INNER JOIN tbl_productos p ON p.id_prod = s.id_prod
             WHERE s.id_sku = ?
             FOR UPDATE
-        ');
+        ");
         $stLock->execute([(int)$idSku]);
         $rowLock = $stLock->fetch(PDO::FETCH_ASSOC);
 
@@ -208,7 +217,7 @@ try {
             ], 409);
         }
 
-        $avail = (int)$rowLock['stock'];
+        $avail = (int)$rowLock['disponible'];
         if ((int)$qty > $avail) {
             $pdo->rollBack();
             checkout_json([
@@ -225,7 +234,7 @@ try {
         }
 
         $lockedStock[(int)$idSku] = [
-            'stock' => $avail,
+            'disponible' => $avail,
             'id_prod' => (int)$rowLock['id_prod'],
             'nombre' => (string)$rowLock['nombre'],
         ];
@@ -274,39 +283,7 @@ try {
         throw new RuntimeException('No se pudo obtener el ID de la orden');
     }
 
-    $stmtDec = $pdo->prepare('
-        UPDATE tbl_skus
-        SET stock = stock - ?
-        WHERE id_sku = ? AND stock >= ?
-    ');
-    $stmtLog = $pdo->prepare('
-        INSERT INTO tbl_stock_log
-            (producto_id, cantidad_anterior, cantidad_nueva, diferencia, motivo, orden_id, nota)
-        VALUES
-            (?, ?, ?, ?, ?, ?, ?)
-    ');
-
-    foreach ($aggSkus as $idSku => $qty) {
-        $idSku = (int)$idSku;
-        $qty = (int)$qty;
-        $prev = (int)$lockedStock[$idSku]['stock'];
-        $idProd = (int)$lockedStock[$idSku]['id_prod'];
-
-        $stmtDec->execute([$qty, $idSku, $qty]);
-        if ($stmtDec->rowCount() === 0) {
-            throw new RuntimeException('No se pudo descontar stock del SKU ' . $idSku);
-        }
-
-        $stmtLog->execute([
-            $idProd,
-            $prev,
-            $prev - $qty,
-            -$qty,
-            'venta',
-            $orderId,
-            'Checkout SKU ' . $idSku,
-        ]);
-    }
+    stock_reserve_for_order($pdo, $orderId, $aggSkus);
 
     $pdo->commit();
 

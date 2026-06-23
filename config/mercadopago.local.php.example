@@ -1,0 +1,25 @@
+<?php
+
+/**
+ * Copiá este archivo como config/mercadopago.local.php y completá con credenciales de TEST.
+ * config/mercadopago.local.php está en .gitignore — no commitear credenciales.
+ *
+ * Panel: https://www.mercadopago.com.ar/developers/panel/app
+ * Usá "Credenciales de prueba" (Access Token y Public Key que empiezan con TEST-).
+ *
+ * Para pruebas locales con webhook vía ngrok, abrí TODO el sitio por la URL de ngrok
+ * (no mezclar localhost en el navegador). La notification_url se arma sola desde SITE_URL.
+ *
+ * Opcional — URL fija si ngrok cambia y querés forzar retornos/webhook:
+ * define('SITE_URL', 'https://TU-SUBDOMINIO.ngrok-free.app/yofi');
+ * (descomentar solo mientras probás; debe coincidir con la URL que usás en el navegador)
+ */
+
+define('MP_ENVIRONMENT', 'sandbox');
+
+define('MP_ACCESS_TOKEN', 'TEST-PEGAR_ACCESS_TOKEN_DE_PRUEBA');
+define('MP_PUBLIC_KEY', 'TEST-PEGAR_PUBLIC_KEY_DE_PRUEBA');
+
+// Opcional — solo si tu app MP los pide explícitamente:
+// define('MP_CLIENT_ID', '');
+// define('MP_CLIENT_SECRET', '');

@@ -13,6 +13,7 @@ header('Expires: 0');
 require_once __DIR__ . '/../../../config.php';
 require_once __DIR__ . '/../../../config/mercadopago.php';
 require_once __DIR__ . '/../../../src/php/db.php';
+require_once __DIR__ . '/../../../src/php/auth.php';
 
 function json_response(array $payload, int $statusCode = 200): void
 {
@@ -105,6 +106,11 @@ function build_mp_item_title(array $item): string
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     json_response(['success' => false, 'message' => 'Método no permitido'], 405);
+}
+
+$csrfHeader = $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+if (!validatePublicCsrfToken(is_string($csrfHeader) ? $csrfHeader : null)) {
+    json_response(['success' => false, 'message' => 'Token de seguridad inválido'], 403);
 }
 
 $inputRaw = file_get_contents('php://input');

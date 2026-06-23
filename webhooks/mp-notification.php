@@ -14,26 +14,12 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../config/mercadopago.php';
+require_once __DIR__ . '/../src/php/db.php';
 require_once __DIR__ . '/../src/php/mp_mercadopago_sync.php';
 
 function db(): PDO
 {
-    static $pdo = null;
-    if ($pdo !== null) {
-        return $pdo;
-    }
-
-    $dsn = DB_DSN ?? 'mysql:host=localhost;dbname=lacasa;charset=utf8mb4';
-    $user = DB_USER_RO ?? 'root';
-    $pass = DB_PASS_RO ?? '';
-
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
-
-    return $pdo;
+    return db_rw();
 }
 
 function log_mp(string $message, string $type = 'INFO'): void

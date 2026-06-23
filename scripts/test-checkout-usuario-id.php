@@ -7,6 +7,11 @@ declare(strict_types=1);
  * Ejecutar: php scripts/test-checkout-usuario-id.php
  */
 
+if (PHP_SAPI === 'cli') {
+    $_SERVER['DOCUMENT_ROOT'] = dirname(__DIR__);
+    $_SERVER['HTTP_HOST'] = 'localhost';
+}
+
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../src/php/db.php';
 
