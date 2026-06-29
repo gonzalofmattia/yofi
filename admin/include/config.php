@@ -45,29 +45,35 @@ if (!function_exists('admin_define')) {
 
 $ENVIRONMENT = detectEnvironment();
 
+$adminProjectRoot = dirname(__DIR__, 2);
+$dbLocalFile = $adminProjectRoot . '/config/db.local.php';
+if (is_file($dbLocalFile)) {
+    require_once $dbLocalFile;
+}
+
 if ($ENVIRONMENT === 'local') {
-    admin_define('DB_HOST', 'localhost');
-    admin_define('DB_USER', 'root');
-    admin_define('DB_PASSWORD', '');
-    admin_define('DB_DATABASE', 'yofi');
+    admin_define('DB_HOST', defined('DB_HOST') ? DB_HOST : 'localhost');
+    admin_define('DB_USER', defined('DB_USER') ? DB_USER : 'root');
+    admin_define('DB_PASSWORD', defined('DB_PASSWORD') ? DB_PASSWORD : '');
+    admin_define('DB_DATABASE', defined('DB_DATABASE') ? DB_DATABASE : 'yofi');
     admin_define('SITE_URL', 'http://localhost/yofi');
     admin_define('IS_LOCAL', true);
     admin_define('IS_PRODUCTION', false);
     admin_define('IS_DEMO', false);
 } elseif ($ENVIRONMENT === 'demo') {
-    admin_define('DB_HOST', 'localhost');
-    admin_define('DB_USER', 'root');
-    admin_define('DB_PASSWORD', '');
-    admin_define('DB_DATABASE', 'yofi');
+    admin_define('DB_HOST', defined('DB_HOST') ? DB_HOST : 'localhost');
+    admin_define('DB_USER', defined('DB_USER') ? DB_USER : 'root');
+    admin_define('DB_PASSWORD', defined('DB_PASSWORD') ? DB_PASSWORD : '');
+    admin_define('DB_DATABASE', defined('DB_DATABASE') ? DB_DATABASE : 'yofi');
     admin_define('SITE_URL', 'http://localhost/yofi/demo');
     admin_define('IS_LOCAL', false);
     admin_define('IS_PRODUCTION', false);
     admin_define('IS_DEMO', true);
 } else {
-    admin_define('DB_HOST', 'localhost');
-    admin_define('DB_USER', 'root');
-    admin_define('DB_PASSWORD', '');
-    admin_define('DB_DATABASE', 'yofi');
+    admin_define('DB_HOST', defined('DB_HOST') ? DB_HOST : 'localhost');
+    admin_define('DB_USER', defined('DB_USER') ? DB_USER : 'root');
+    admin_define('DB_PASSWORD', defined('DB_PASSWORD') ? DB_PASSWORD : '');
+    admin_define('DB_DATABASE', defined('DB_DATABASE') ? DB_DATABASE : 'yofi');
     admin_define('SITE_URL', 'https://yofi.com.ar');
     admin_define('IS_LOCAL', false);
     admin_define('IS_PRODUCTION', true);

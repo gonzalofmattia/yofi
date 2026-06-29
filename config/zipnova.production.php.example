@@ -1,0 +1,13 @@
+<?php
+
+/**
+ * Copiá como config/zipnova.production.php antes del deploy.
+ * El deploy lo sube al servidor como config/zipnova.local.php.
+ * config/zipnova.production.php está en .gitignore — no commitear.
+ */
+
+define('ZIPNOVA_ACCOUNT_ID', 'TU_ACCOUNT_ID');
+define('ZIPNOVA_KEY', 'TU_API_KEY');
+define('ZIPNOVA_SECRET', 'TU_SECRET');
+define('ZIPNOVA_CP_ORIGEN', '1706');
+define('ZIPNOVA_DEBUG', false);

@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * Copiá como config/mercadopago.production.php antes del deploy.
+ * El deploy lo sube al servidor como config/mercadopago.local.php.
+ * config/mercadopago.production.php está en .gitignore — no commitear.
+ */
+
+define('MP_ENVIRONMENT', 'sandbox');
+
+define('MP_ACCESS_TOKEN', 'TEST-PEGAR_ACCESS_TOKEN');
+define('MP_PUBLIC_KEY', 'TEST-PEGAR_PUBLIC_KEY');
+
+// define('MP_CLIENT_ID', '');
+// define('MP_CLIENT_SECRET', '');

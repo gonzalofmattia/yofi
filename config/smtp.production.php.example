@@ -1,0 +1,15 @@
+<?php
+
+/**
+ * Copiá como config/smtp.production.php antes del deploy.
+ * El deploy lo sube al servidor como config/smtp.local.php.
+ * config/smtp.production.php está en .gitignore — no commitear.
+ */
+
+define('SMTP_HOST', 'mail.tudominio.com.ar');
+define('SMTP_PORT', 587);
+define('SMTP_USER', 'no-reply@tudominio.com.ar');
+define('SMTP_PASS', 'TU_CONTRASEÑA_SMTP');
+define('SMTP_SECURE', 'tls');
+define('MAIL_FROM', 'no-reply@tudominio.com.ar');
+define('MAIL_FROM_NAME', 'Yofi');

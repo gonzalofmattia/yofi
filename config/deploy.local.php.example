@@ -1,0 +1,43 @@
+<?php
+
+/**
+ * Credenciales de deploy — copiá como config/deploy.local.php (gitignored).
+ * Nunca commitear este archivo con datos reales.
+ *
+ * Uso: php deploy/deploy.php
+ */
+
+return [
+    'ftp' => [
+        'host' => 'ftp.tudominio.com.ar',
+        'port' => 21,
+        'user' => 'usuario_ftp',
+        'password' => 'contraseña_ftp',
+        // Ruta remota desde la raíz FTP (sin barra final). Ej: public_html o public_html/yofi
+        'remote_path' => 'public_html',
+        'passive' => true,
+        // DonWeb/Ferozo: FTPS (TLS explícito, puerto 21). FileZilla lo usa por defecto.
+        'ssl' => true,
+    ],
+
+    // Base de datos local (Laragon) — origen del dump
+    'local_db' => [
+        'host' => '127.0.0.1',
+        'user' => 'root',
+        'password' => '',
+        'name' => 'yofi',
+    ],
+
+    // Base de datos de producción (DonWeb) — referencia e import manual
+    'production_db' => [
+        'host' => 'localhost',
+        'user' => 'usuario_mysql_donweb',
+        'password' => 'contraseña_mysql_donweb',
+        'name' => 'nombre_bd_donweb',
+    ],
+
+    // Tablas excluidas del dump (sesiones locales no migran)
+    'exclude_tables_from_dump' => [
+        'tbl_sessions',
+    ],
+];

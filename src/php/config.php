@@ -56,11 +56,21 @@ if (!function_exists('detectEnvironmentFront')) {
 
 $detectedEnv = detectEnvironmentFront();
 
-if ($detectedEnv === 'local') {
+$dbLocalFile = YOFI_PROJECT_ROOT . '/config/db.local.php';
+if (is_file($dbLocalFile)) {
+    require_once $dbLocalFile;
+}
+
+if ($detectedEnv === 'local' && !defined('DB_HOST')) {
     $dbHost = 'localhost';
     $dbUser = 'root';
     $dbPass = '';
     $dbName = 'yofi';
+} elseif (defined('DB_HOST')) {
+    $dbHost = DB_HOST;
+    $dbUser = defined('DB_USER') ? DB_USER : (defined('DB_USER_RW') ? DB_USER_RW : '');
+    $dbPass = defined('DB_PASSWORD') ? DB_PASSWORD : (defined('DB_PASS') ? DB_PASS : (defined('DB_PASS_RW') ? DB_PASS_RW : ''));
+    $dbName = defined('DB_DATABASE') ? DB_DATABASE : (defined('DB_NAME') ? DB_NAME : 'yofi');
 } elseif ($detectedEnv === 'demo') {
     $dbHost = 'localhost';
     $dbUser = getenv('DB_USER') ?: 'yofi_demo';

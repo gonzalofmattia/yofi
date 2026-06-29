@@ -9,8 +9,20 @@ config/mercadopago.local.php
 config/zipnova.local.php
 config/smtp.local.php
 config/app.local.php
+config/db.local.php
+config/deploy.local.php
+config/*.production.php
 .env
 
+# Deploy — dumps locales y credenciales
+deploy/dumps/*.sql
+deploy/dumps/*.sql.gz
+deploy/deploy.log
+deploy/remote-error_log.txt
+deploy/.deploy-manifest.json
+deploy/db-probe-result.txt
+db-probe.php
+db-probe-result.txt
 # Sistema
 .DS_Store
 Thumbs.db

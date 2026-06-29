@@ -1,0 +1,11 @@
+<?php
+
+/**
+ * Copiá como config/app.production.php antes del deploy.
+ * El deploy lo sube al servidor como config/app.local.php.
+ * config/app.production.php está en .gitignore — no commitear.
+ *
+ * Generá una clave larga y aleatoria para producción (distinta a la de local).
+ */
+
+define('INTERNAL_API_KEY', 'genera-una-clave-larga-y-secreta-para-produccion');
