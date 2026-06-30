@@ -4,6 +4,10 @@ Archivo de referencia para Claude Code. Leer completo antes de cualquier acción
 
 ---
 
+## IDIOMA
+
+Siempre responder en español (Argentina). Sin excepciones.
+
 ## 1. Contexto del proyecto
 
 Yofi es una tienda de ropa infantil construida en PHP puro + MySQL, sin frameworks. Es un proyecto en crecimiento activo con una sola desarrolladora (Gonzalo). El objetivo es una base sólida, mantenible y escalable a largo plazo.
@@ -52,6 +56,14 @@ Yofi es una tienda de ropa infantil construida en PHP puro + MySQL, sin framewor
 ```
 
 ---
+
+## ANTES DE CADA TAREA — obligatorio
+
+Antes de tocar cualquier archivo, siempre ejecutar en orden:
+1. `git checkout main`
+2. `git pull origin main`
+3. `git checkout -b [tipo]/[nombre-descriptivo]`
+4. Confirmar en qué branch estás antes de continuar
 
 ## 4. Workflow Git — SIEMPRE seguir este orden
 
@@ -108,6 +120,11 @@ Usar prefijos semánticos:
 - `refactor:` reorganización sin cambio de comportamiento
 - `test:` agregar o modificar tests
 - `docs:` documentación
+
+### 4.5 Branches — no borrar después del merge
+
+Conservar todas las branches después de mergear. No ejecutar `git branch -d` ni 
+`git push origin --delete` nunca. Las branches quedan como historial de trabajo.
 
 ---
 
