@@ -6,7 +6,7 @@ require_once __DIR__ . '/../check_session.php';
 $id_cate = (int)($_GET['id'] ?? 0);
 $pageTitle = $id_cate > 0 ? 'Editar categoría' : 'Nueva categoría';
 $error = '';
-$row = ['nombre' => '', 'descripcion' => '', 'imagen' => '', 'publicado' => 1, 'destacado_home' => 0];
+$row = ['nombre' => '', 'descripcion' => '', 'imagen' => '', 'banner_img' => '', 'publicado' => 1, 'destacado_home' => 0];
 
 if ($id_cate > 0) {
     $stmt = mysqli_prepare($con, 'SELECT * FROM tbl_categorias WHERE id_cate = ?');
@@ -25,6 +25,7 @@ if (isset($_POST['envio'])) {
     $destacadoHome = isset($_POST['destacado_home']) ? 1 : 0;
     $slug = yofi_slug($nombre);
     $imagen = trim((string)($row['imagen'] ?? ''));
+    $bannerImg = trim((string)($row['banner_img'] ?? ''));
 
     if (!empty($_FILES['imagen']['tmp_name'])) {
         $upload = yofi_upload_imgprod_file($_FILES['imagen'], 'categoria');
@@ -35,19 +36,28 @@ if (isset($_POST['envio'])) {
         }
     }
 
+    if ($error === '' && !empty($_FILES['banner_img']['tmp_name'])) {
+        $upload = yofi_upload_imgprod_file($_FILES['banner_img'], 'categoria-banner');
+        if (!$upload['success']) {
+            $error = $upload['error'] ?? 'Error al subir el banner';
+        } else {
+            $bannerImg = $upload['filename'];
+        }
+    }
+
     if ($error === '' && $nombre === '') {
         $error = 'El nombre es obligatorio.';
     } elseif ($error === '' && $id_cate > 0) {
-        $stmt = mysqli_prepare($con, 'UPDATE tbl_categorias SET nombre=?, slug=?, descripcion=?, imagen=?, publicado=?, destacado_home=? WHERE id_cate=?');
-        mysqli_stmt_bind_param($stmt, 'ssssiii', $nombre, $slug, $descripcion, $imagen, $publicado, $destacadoHome, $id_cate);
+        $stmt = mysqli_prepare($con, 'UPDATE tbl_categorias SET nombre=?, slug=?, descripcion=?, imagen=?, banner_img=?, publicado=?, destacado_home=? WHERE id_cate=?');
+        mysqli_stmt_bind_param($stmt, 'sssssiii', $nombre, $slug, $descripcion, $imagen, $bannerImg, $publicado, $destacadoHome, $id_cate);
         if (mysqli_stmt_execute($stmt)) {
             header('Location: listado.php?modificado=1');
             exit();
         }
         $error = 'Error al guardar.';
     } elseif ($error === '') {
-        $stmt = mysqli_prepare($con, 'INSERT INTO tbl_categorias (nombre, slug, descripcion, imagen, publicado, destacado_home) VALUES (?, ?, ?, ?, ?, ?)');
-        mysqli_stmt_bind_param($stmt, 'ssssii', $nombre, $slug, $descripcion, $imagen, $publicado, $destacadoHome);
+        $stmt = mysqli_prepare($con, 'INSERT INTO tbl_categorias (nombre, slug, descripcion, imagen, banner_img, publicado, destacado_home) VALUES (?, ?, ?, ?, ?, ?, ?)');
+        mysqli_stmt_bind_param($stmt, 'sssssii', $nombre, $slug, $descripcion, $imagen, $bannerImg, $publicado, $destacadoHome);
         if (mysqli_stmt_execute($stmt)) {
             header('Location: listado.php?agregado=1');
             exit();
@@ -91,6 +101,26 @@ include __DIR__ . '/../header.php';
                 <label class="form-label" for="imagen"><?= $id_cate > 0 ? 'Reemplazar imagen' : 'Imagen' ?></label>
                 <input type="file" name="imagen" id="imagen" class="form-control" accept=".jpg,.jpeg,.png,.webp">
                 <div class="form-text">JPG, PNG o WebP. Se usa en el slider de categorías del home si está destacada.</div>
+            </div>
+
+            <?php if (!empty($row['banner_img'])): ?>
+            <div class="mb-3">
+                <label class="form-label">Banner actual</label>
+                <div>
+                    <img
+                        src="<?= htmlspecialchars(imgprod_path((string)$row['banner_img']), ENT_QUOTES, 'UTF-8') ?>"
+                        alt=""
+                        class="rounded border"
+                        style="max-width:320px;max-height:160px;object-fit:cover"
+                    >
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <div class="mb-3">
+                <label class="form-label" for="banner_img"><?= !empty($row['banner_img']) ? 'Reemplazar banner' : 'Banner de categoría' ?></label>
+                <input type="file" name="banner_img" id="banner_img" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                <div class="form-text">JPG, PNG o WebP. Imagen horizontal que se muestra arriba de la página de categoría. Si no se carga, se usa una imagen genérica.</div>
             </div>
 
             <div class="mb-3">

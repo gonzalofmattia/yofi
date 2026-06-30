@@ -87,12 +87,16 @@ $clearSidebarQs = catalog_query_string($clearSidebarFilters);
 if ($clearSidebarQs !== '') {
     $clearSidebarUrl .= '&' . $clearSidebarQs;
 }
+
+$bannerImg = (!empty($categoriaActual['banner_img']))
+    ? imgprod_path((string)$categoriaActual['banner_img'])
+    : imgprod_path('catalogo-hero.jpg');
 ?>
 
 <!-- Hero strip -->
 <section class="relative w-full h-[260px] sm:h-[300px] overflow-hidden">
     <img
-        src="<?php echo htmlspecialchars(imgprod_path('catalogo-hero.jpg'), ENT_QUOTES, 'UTF-8'); ?>"
+        src="<?php echo htmlspecialchars($bannerImg, ENT_QUOTES, 'UTF-8'); ?>"
         alt="<?php echo htmlspecialchars($tituloCatalogo, ENT_QUOTES, 'UTF-8'); ?>"
         class="absolute inset-0 w-full h-full object-cover"
     >
