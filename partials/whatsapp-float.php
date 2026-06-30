@@ -1,7 +1,7 @@
 <?php if (!empty($whatsappFloatHref)): ?>
 <a
     href="<?= htmlspecialchars($whatsappFloatHref, ENT_QUOTES, 'UTF-8') ?>"
-    class="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg hover:scale-105 hover:shadow-xl transition-transform"
+    class="fixed bottom-10 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg hover:scale-105 hover:shadow-xl transition-transform"
     target="_blank"
     rel="noopener noreferrer"
     aria-label="Contactar por WhatsApp"
