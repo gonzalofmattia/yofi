@@ -36,11 +36,11 @@ $currentCategoriaSlug = isset($_GET['categoria']) ? trim((string)$_GET['categori
             </a>
 
             <div class="flex items-center gap-1 md:gap-3">
-                <a href="<?php echo page_path('catalogo'); ?>?q=" class="p-2 text-dark hover:text-accent transition-colors" aria-label="Buscar">
+                <button type="button" class="p-2 text-dark hover:text-accent transition-colors" data-search-open aria-label="Buscar" aria-expanded="false" aria-controls="search-overlay">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/>
                     </svg>
-                </a>
+                </button>
                 <button type="button" class="relative p-2 text-dark hover:text-accent transition-colors" data-wishlist-trigger aria-label="Lista de deseos">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
@@ -90,6 +90,34 @@ $currentCategoriaSlug = isset($_GET['categoria']) ? trim((string)$_GET['categori
     </nav>
     <?php endif; ?>
 </header>
+
+<div id="search-overlay" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+    <div class="absolute inset-0 bg-dark/40" data-search-close></div>
+    <div class="relative bg-white border-b border-cream shadow-lg">
+        <form class="flex items-center gap-3 px-4 h-16 md:h-20"
+              method="get"
+              action="<?php echo htmlspecialchars(app_path('index.php'), ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="p" value="catalogo">
+            <svg class="w-5 h-5 text-earth flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/>
+            </svg>
+            <input
+                type="search"
+                name="q"
+                id="search-input"
+                placeholder="Buscar productos..."
+                autocomplete="off"
+                class="flex-1 bg-transparent outline-none text-dark text-base placeholder-earth min-w-0"
+                aria-label="Buscar productos"
+            >
+            <button type="button" class="p-2 text-dark hover:text-accent flex-shrink-0" data-search-close aria-label="Cerrar búsqueda">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </form>
+    </div>
+</div>
 
 <div
     id="mobile-menu"
@@ -175,6 +203,39 @@ $currentCategoriaSlug = isset($_GET['categoria']) ? trim((string)$_GET['categori
 
     menu.querySelectorAll('[data-action="menu-close"]').forEach(function (el) {
         el.addEventListener('click', closeMenu);
+    });
+})();
+
+(function () {
+    var overlay = document.getElementById('search-overlay');
+    var input = document.getElementById('search-input');
+    var openBtn = document.querySelector('[data-search-open]');
+    if (!overlay || !input || !openBtn) return;
+
+    function openSearch() {
+        overlay.classList.remove('hidden');
+        overlay.setAttribute('aria-hidden', 'false');
+        openBtn.setAttribute('aria-expanded', 'true');
+        setTimeout(function () { input.focus(); }, 50);
+    }
+
+    function closeSearch() {
+        overlay.classList.add('hidden');
+        overlay.setAttribute('aria-hidden', 'true');
+        openBtn.setAttribute('aria-expanded', 'false');
+        input.value = '';
+    }
+
+    openBtn.addEventListener('click', openSearch);
+
+    overlay.querySelectorAll('[data-search-close]').forEach(function (el) {
+        el.addEventListener('click', closeSearch);
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && !overlay.classList.contains('hidden')) {
+            closeSearch();
+        }
     });
 })();
 </script>
