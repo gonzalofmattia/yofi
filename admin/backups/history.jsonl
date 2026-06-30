@@ -1,0 +1,5 @@
+{"id":"bk_6a44447959052","ts":"2026-06-30T19:34:33-03:00","action":"create_backup","label":"manual","file":"backup-manual-20260630-193433.sql","status":"ok","note":""}
+{"id":"bk_6a44449bd5eab","ts":"2026-06-30T19:35:07-03:00","action":"create_backup","label":"pre-import","file":"backup-pre-import-20260630-193507.sql","status":"ok","note":""}
+{"id":"imp_6a44449bebb9c","ts":"2026-06-30T19:35:07-03:00","action":"import_upload","file_uploaded":"upload-20260630-193507-a0141154_yofi.sql","backup_before":"backup-pre-import-20260630-193507.sql","status":"error","note":"ERROR 1050 (42S01) at line 30: Table 'tbl_admin' already exists"}
+{"id":"bk_6a4445d694425","ts":"2026-06-30T19:40:22-03:00","action":"create_backup","label":"pre-import","file":"backup-pre-import-20260630-194022.sql","status":"ok","note":""}
+{"id":"imp_6a4445db0adad","ts":"2026-06-30T19:40:27-03:00","action":"import_upload","file_uploaded":"upload-20260630-194022-a0141154_yofi.sql","backup_before":"backup-pre-import-20260630-194022.sql","status":"ok","note":"Eliminadas 24 tablas antes de importar."}

@@ -71,6 +71,11 @@ function nav_active_dir(string $dir, string $currentPath): string
         <a class="nav-link<?= nav_active('configuracion.php', $currentScript) ?>" href="<?= app_path('admin/configuracion.php') ?>">
             <i class="bi bi-gear"></i> Configuración
         </a>
+        <?php if (defined('IS_LOCAL') && IS_LOCAL): ?>
+        <a class="nav-link<?= nav_active('db-sync.php', $currentScript) ?>" href="<?= app_path('admin/db-sync.php') ?>">
+            <i class="bi bi-database-gear"></i> Sync BD
+        </a>
+        <?php endif; ?>
         <a class="nav-link text-danger" href="<?= app_path('admin/logout.php') ?>">
             <i class="bi bi-box-arrow-left"></i> Cerrar sesión
         </a>
