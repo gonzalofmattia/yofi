@@ -495,8 +495,11 @@ function build_catalog_query(array $filters, bool $countOnly, int $page = 1, int
     }
 
     if ($filters['q'] !== '') {
-        $conditions[] = '(p.nombre LIKE :q OR p.codigo LIKE :q OR p.descripcion LIKE :q)';
-        $params[':q'] = '%' . $filters['q'] . '%';
+        $conditions[] = '(p.nombre LIKE :q1 OR p.codigo LIKE :q2 OR p.descripcion LIKE :q3)';
+        $qLike = '%' . $filters['q'] . '%';
+        $params[':q1'] = $qLike;
+        $params[':q2'] = $qLike;
+        $params[':q3'] = $qLike;
     }
 
     if ($filters['precio_min'] !== null) {
