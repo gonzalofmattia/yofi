@@ -105,7 +105,33 @@ $checkoutBootstrap = [
                                     <input type="text" name="city" id="co-city" required class="mt-1 w-full rounded-xl border border-cream px-3 py-2.5 text-sm" autocomplete="address-level2">
                                 </label>
                                 <label class="block text-sm font-semibold">Provincia *
-                                    <input type="text" name="province" id="co-province" required class="mt-1 w-full rounded-xl border border-cream px-3 py-2.5 text-sm" autocomplete="address-level1">
+                                    <select name="province" id="co-province" required class="mt-1 w-full rounded-xl border border-cream px-3 py-2.5 text-sm bg-white">
+                                        <option value="">Seleccioná una provincia</option>
+                                        <option value="Buenos Aires">Buenos Aires</option>
+                                        <option value="Ciudad Autónoma de Buenos Aires">Ciudad Autónoma de Buenos Aires</option>
+                                        <option value="Catamarca">Catamarca</option>
+                                        <option value="Chaco">Chaco</option>
+                                        <option value="Chubut">Chubut</option>
+                                        <option value="Córdoba">Córdoba</option>
+                                        <option value="Corrientes">Corrientes</option>
+                                        <option value="Entre Ríos">Entre Ríos</option>
+                                        <option value="Formosa">Formosa</option>
+                                        <option value="Jujuy">Jujuy</option>
+                                        <option value="La Pampa">La Pampa</option>
+                                        <option value="La Rioja">La Rioja</option>
+                                        <option value="Mendoza">Mendoza</option>
+                                        <option value="Misiones">Misiones</option>
+                                        <option value="Neuquén">Neuquén</option>
+                                        <option value="Río Negro">Río Negro</option>
+                                        <option value="Salta">Salta</option>
+                                        <option value="San Juan">San Juan</option>
+                                        <option value="San Luis">San Luis</option>
+                                        <option value="Santa Cruz">Santa Cruz</option>
+                                        <option value="Santa Fe">Santa Fe</option>
+                                        <option value="Santiago del Estero">Santiago del Estero</option>
+                                        <option value="Tierra del Fuego, Antártida e Islas del Atlántico Sur">Tierra del Fuego, Antártida e Islas del Atlántico Sur</option>
+                                        <option value="Tucumán">Tucumán</option>
+                                    </select>
                                 </label>
                                 <label class="block text-sm font-semibold">Código postal *
                                     <input type="text" name="zip" id="co-zip" required inputmode="numeric" class="mt-1 w-full rounded-xl border border-cream px-3 py-2.5 text-sm" autocomplete="postal-code">
