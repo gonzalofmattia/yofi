@@ -5,7 +5,7 @@ require_once __DIR__ . '/check_session.php';
 
 $pageTitle = 'Slider del home';
 
-$result = mysqli_query($con, 'SELECT id_slide, imagen, link_url, orden, activo FROM tbl_slider ORDER BY orden ASC, id_slide ASC');
+$result = mysqli_query($con, 'SELECT id_slide, imagen, imagen_mobile, link_url, orden, activo FROM tbl_slider ORDER BY orden ASC, id_slide ASC');
 $rows = [];
 if ($result) {
     while ($row = mysqli_fetch_assoc($result)) {
@@ -39,6 +39,7 @@ echo borrado($_GET['borrado'] ?? '', '', 'slide');
                 <thead>
                     <tr>
                         <th style="width:120px">Imagen</th>
+                        <th style="width:72px">Mobile</th>
                         <th>Link</th>
                         <th>Orden</th>
                         <th>Estado</th>
@@ -56,6 +57,19 @@ echo borrado($_GET['borrado'] ?? '', '', 'slide');
                                     class="rounded"
                                     style="width:96px;height:56px;object-fit:cover"
                                 >
+                            </td>
+                            <td>
+                                <?php if (!empty($row['imagen_mobile'])): ?>
+                                <img
+                                    src="<?= htmlspecialchars(imgprod_path((string)$row['imagen_mobile']), ENT_QUOTES, 'UTF-8') ?>"
+                                    alt=""
+                                    class="rounded border border-success"
+                                    style="width:40px;height:50px;object-fit:cover"
+                                    title="Tiene imagen mobile"
+                                >
+                                <?php else: ?>
+                                <span class="text-muted" title="Sin imagen mobile"><i class="bi bi-phone"></i></span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <?php if (!empty($row['link_url'])): ?>
@@ -93,7 +107,7 @@ echo borrado($_GET['borrado'] ?? '', '', 'slide');
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-5">Sin slides configurados</td>
+                        <td colspan="6" class="text-center text-muted py-5">Sin slides configurados</td>
                     </tr>
                 <?php endif; ?>
                 </tbody>

@@ -332,6 +332,7 @@ INSERT INTO `tbl_metodos_pago` (`codigo`, `nombre`, `descripcion`, `activo`, `or
 CREATE TABLE IF NOT EXISTS `tbl_slider` (
   `id_slide` int NOT NULL AUTO_INCREMENT,
   `imagen` varchar(250) NOT NULL,
+  `imagen_mobile` varchar(250) DEFAULT NULL,
   `link_url` varchar(255) DEFAULT NULL,
   `orden` int DEFAULT 0,
   `activo` tinyint DEFAULT 1,
@@ -452,3 +453,12 @@ CREATE TABLE IF NOT EXISTS `tbl_password_tokens` (
   CONSTRAINT `tbl_password_tokens_ibfk_1`
     FOREIGN KEY (`usuario_id`) REFERENCES `tbl_usuarios` (`id_usuario`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =============================================================================
+-- MIGRACIÓN NUEVA (2026-06-30) — Imagen mobile opcional en slider hero
+-- Ver también scripts/migrate-slider-imagen-mobile.sql
+-- =============================================================================
+
+-- ALTER TABLE `tbl_slider`
+--   ADD COLUMN `imagen_mobile` varchar(250) DEFAULT NULL
+--   AFTER `imagen`;

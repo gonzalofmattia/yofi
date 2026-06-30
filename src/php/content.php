@@ -10,7 +10,7 @@ require_once __DIR__ . '/db.php';
 function get_active_slides(): array
 {
     $stmt = db_ro()->query(
-        'SELECT id_slide, imagen, link_url, orden
+        'SELECT id_slide, imagen, imagen_mobile, link_url, orden
          FROM tbl_slider
          WHERE activo = 1
          ORDER BY orden ASC, id_slide ASC'

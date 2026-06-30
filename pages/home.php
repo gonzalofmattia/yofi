@@ -14,6 +14,13 @@ $defaultEdadSlug = (string)($ageTabs[0]['slug'] ?? 'mini');
 
 $heroSlides = get_active_slides();
 $heroSlideCount = count($heroSlides);
+$heroAllDesktopFallbackOnMobile = $heroSlideCount > 0;
+foreach ($heroSlides as $slide) {
+    if (trim((string)($slide['imagen_mobile'] ?? '')) !== '') {
+        $heroAllDesktopFallbackOnMobile = false;
+        break;
+    }
+}
 $homeBanners = get_active_banners('home_secundario');
 $homeBannerCount = count($homeBanners);
 ?>
@@ -21,7 +28,7 @@ $homeBannerCount = count($homeBanners);
 <!-- Hero -->
 <?php if ($heroSlideCount > 0): ?>
 <section
-    class="relative w-full h-[88vh] md:h-[92vh] overflow-hidden bg-cream"
+    class="relative w-full overflow-hidden bg-cream <?= $heroAllDesktopFallbackOnMobile ? 'max-md:aspect-[5/4] max-md:h-auto md:h-[92vh]' : 'h-[88vh] md:h-[92vh]' ?>"
     data-component="hero-slider"
     aria-label="Galería principal"
     <?= $heroSlideCount > 1 ? 'data-autoplay="6000"' : '' ?>
@@ -31,6 +38,11 @@ $homeBannerCount = count($homeBanners);
         <?php
             $slideHref = content_resolve_url(isset($slide['link_url']) ? (string)$slide['link_url'] : null);
             $slideImg = imgprod_path((string)$slide['imagen']);
+            $slideMobileRaw = trim((string)($slide['imagen_mobile'] ?? ''));
+            $slideMobileImg = $slideMobileRaw !== '' ? imgprod_path($slideMobileRaw) : '';
+            $slideImgClass = $slideMobileImg !== ''
+                ? 'h-full w-full object-cover object-center'
+                : 'h-full w-full object-cover object-center max-md:object-[center_40%] md:object-center';
         ?>
         <div
             class="hero-slider-slide absolute inset-0 transition-opacity duration-700 ease-in-out <?= $i === 0 ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none' ?>"
@@ -40,12 +52,17 @@ $homeBannerCount = count($homeBanners);
             <?php if ($slideHref !== ''): ?>
             <a href="<?= htmlspecialchars($slideHref, ENT_QUOTES, 'UTF-8') ?>" class="block h-full w-full">
             <?php endif; ?>
-                <img
-                    src="<?= htmlspecialchars($slideImg, ENT_QUOTES, 'UTF-8') ?>"
-                    alt=""
-                    class="h-full w-full object-cover"
-                    <?= $i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' ?>
-                >
+                <picture class="block h-full w-full">
+                    <?php if ($slideMobileImg !== ''): ?>
+                    <source media="(max-width: 767px)" srcset="<?= htmlspecialchars($slideMobileImg, ENT_QUOTES, 'UTF-8') ?>">
+                    <?php endif; ?>
+                    <img
+                        src="<?= htmlspecialchars($slideImg, ENT_QUOTES, 'UTF-8') ?>"
+                        alt=""
+                        class="<?= htmlspecialchars($slideImgClass, ENT_QUOTES, 'UTF-8') ?>"
+                        <?= $i === 0 ? 'fetchpriority="high"' : 'loading="lazy"' ?>
+                    >
+                </picture>
             <?php if ($slideHref !== ''): ?>
             </a>
             <?php endif; ?>
@@ -82,11 +99,11 @@ $homeBannerCount = count($homeBanners);
     <?php endif; ?>
 </section>
 <?php else: ?>
-<section class="relative w-full h-[88vh] md:h-[92vh] overflow-hidden bg-cream">
+<section class="relative w-full overflow-hidden bg-cream max-md:aspect-[5/4] max-md:h-auto md:h-[92vh]">
     <img
         src="<?= htmlspecialchars(imgprod_path('hero-principal.jpg'), ENT_QUOTES, 'UTF-8') ?>"
         alt=""
-        class="absolute inset-0 h-full w-full object-cover"
+        class="absolute inset-0 h-full w-full object-cover object-[center_40%] md:object-center"
     >
 </section>
 <?php endif; ?>
