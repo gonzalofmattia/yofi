@@ -14,6 +14,7 @@ CREATE TABLE `tbl_categorias` (
   `slug` varchar(120) NOT NULL,
   `descripcion` text,
   `imagen` varchar(250) DEFAULT NULL,
+  `banner_img` varchar(250) DEFAULT NULL,
   `seo_title` varchar(250) DEFAULT NULL,
   `seo_description` text,
   `orden` int DEFAULT 0,
