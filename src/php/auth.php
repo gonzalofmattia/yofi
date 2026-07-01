@@ -7,20 +7,16 @@ require_once __DIR__ . '/db.php';
 
 function getPublicSessionCookiePath(): string
 {
-    $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
-    if ($script === '' || $script[0] !== '/') {
-        return '/';
-    }
-    $parts = array_values(array_filter(explode('/', trim($script, '/')), static fn($p) => $p !== ''));
-    if ($parts === []) {
-        return '/';
-    }
-    $first = $parts[0];
-    if ($first === 'index.php' || (strlen($first) > 4 && substr($first, -4) === '.php')) {
-        return '/';
-    }
+    // Usa la misma detección de base path que el resto del sitio (basada en
+    // DOCUMENT_ROOT vs YOFI_PROJECT_ROOT, no en el script que se ejecuta).
+    // Antes se derivaba del SCRIPT_NAME de cada request, así que la home
+    // (/index.php) calculaba path "/" pero los endpoints bajo /public/api/
+    // o /admin/api/ calculaban "/public/" o "/admin/" — dos cookies de
+    // sesión distintas conviviendo en el navegador, cada una con su propio
+    // CSRF token, rompiendo la validación en cualquier request a la API.
+    $base = yofi_app_base_path();
 
-    return rtrim('/' . $first, '/') . '/';
+    return $base === '' ? '/' : rtrim($base, '/') . '/';
 }
 
 function isHttpsRequest(): bool
