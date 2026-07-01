@@ -40,15 +40,7 @@ function isHttpsRequest(): bool
 
 function isSessionCookieSecure(): bool
 {
-    if (isHttpsRequest()) {
-        return true;
-    }
-    $host = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
-    if ($host !== '' && (str_contains($host, 'yofi') || str_contains($host, '.com.ar'))) {
-        return ENV !== 'dev';
-    }
-
-    return false;
+    return isHttpsRequest();
 }
 
 function getPublicSessionName(): string
