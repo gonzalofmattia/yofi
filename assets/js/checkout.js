@@ -13,6 +13,7 @@
         quoted: false,
     };
     var paymentMethod = 'mercadopago';
+    var paymentMethodLabel = 'Mercado Pago';
     var quoteTimer = null;
     var currentStep = 1;
 
@@ -350,6 +351,22 @@
         });
     }
 
+    function submitButtonLabel() {
+        return paymentMethod === 'mercadopago' ? 'Pagar con Mercado Pago' : 'Confirmar pedido — ' + paymentMethodLabel;
+    }
+
+    function updatePaymentMethodUi() {
+        var btn = document.querySelector('[data-checkout-submit]');
+        if (btn && !btn.disabled) btn.textContent = submitButtonLabel();
+
+        var hint = document.querySelector('[data-checkout-payment-hint]');
+        if (hint) {
+            hint.textContent = paymentMethod === 'mercadopago'
+                ? 'Serás redirigido a Mercado Pago para completar el pago de forma segura.'
+                : 'Al confirmar, tu pedido quedará registrado con el método de pago seleccionado.';
+        }
+    }
+
     function submitOrder() {
         var btn = document.querySelector('[data-checkout-submit]');
         if (!btn || btn.disabled) return;
@@ -382,7 +399,7 @@
                         showBanner((res.data && res.data.message) || 'Error al procesar el pedido', 'error');
                     }
                     btn.disabled = false;
-                    btn.textContent = 'Pagar con Mercado Pago';
+                    btn.textContent = submitButtonLabel();
                     return;
                 }
 
@@ -411,18 +428,18 @@
                         }
                         showBanner(mp.message || 'Error al iniciar Mercado Pago', 'error');
                         btn.disabled = false;
-                        btn.textContent = 'Pagar con Mercado Pago';
+                        btn.textContent = submitButtonLabel();
                     })
                     .catch(function () {
                         showBanner('Error de conexión con Mercado Pago', 'error');
                         btn.disabled = false;
-                        btn.textContent = 'Pagar con Mercado Pago';
+                        btn.textContent = submitButtonLabel();
                     });
             })
             .catch(function () {
                 showBanner('Error de conexión. Intentá de nuevo.', 'error');
                 btn.disabled = false;
-                btn.textContent = 'Pagar con Mercado Pago';
+                btn.textContent = submitButtonLabel();
             });
     }
 
@@ -479,9 +496,15 @@
             .then(function (data) {
                 var wrap = document.querySelector('[data-checkout-payment-methods]');
                 if (!wrap || !data.metodos_pago) return;
+                var defaultMethod = data.metodos_pago.some(function (m) { return m.codigo === 'mercadopago'; })
+                    ? 'mercadopago'
+                    : data.metodos_pago[0].codigo;
                 wrap.innerHTML = data.metodos_pago.map(function (m) {
-                    var checked = m.codigo === 'mercadopago' ? ' checked' : '';
-                    if (checked) paymentMethod = m.codigo;
+                    var checked = m.codigo === defaultMethod ? ' checked' : '';
+                    if (checked) {
+                        paymentMethod = m.codigo;
+                        paymentMethodLabel = m.nombre;
+                    }
                     return '<label class="flex items-center gap-3 p-3 rounded-xl border border-cream">' +
                         '<input type="radio" name="pay_method" value="' + escapeHtml(m.codigo) + '"' + checked + '>' +
                         '<span><strong>' + escapeHtml(m.nombre) + '</strong>' +
@@ -491,8 +514,12 @@
                 wrap.querySelectorAll('input[name="pay_method"]').forEach(function (radio) {
                     radio.addEventListener('change', function () {
                         paymentMethod = radio.value;
+                        var m = data.metodos_pago.find(function (x) { return x.codigo === radio.value; });
+                        paymentMethodLabel = m ? m.nombre : radio.value;
+                        updatePaymentMethodUi();
                     });
                 });
+                updatePaymentMethodUi();
             })
             .catch(function () {});
     }
