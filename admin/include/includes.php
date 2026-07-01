@@ -22,6 +22,10 @@ $appConfig = $projectRoot . '/config/app.php';
 if (file_exists($appConfig)) {
     require_once $appConfig;
 }
+$smtpConfig = $projectRoot . '/config/smtp.php';
+if (file_exists($smtpConfig)) {
+    require_once $smtpConfig;
+}
 
 if (defined('IS_LOCAL') && IS_LOCAL) {
     ini_set('display_errors', 'On');
