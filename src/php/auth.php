@@ -669,3 +669,138 @@ function getLoggedInUserId(): ?int
 
     return is_numeric($id) && (int) $id > 0 ? (int) $id : null;
 }
+
+/**
+ * Genera y envía un código de acceso de un solo uso por email.
+ * Respuesta genérica siempre: no revela si el email tiene cuenta o no.
+ */
+function requestLoginCode(string $email): array
+{
+    $email = trim($email);
+    $genericOk = [
+        'success' => true,
+        'message' => 'Si el email tiene una cuenta, te enviamos un código de acceso.',
+    ];
+
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return ['success' => false, 'message' => 'Email inválido'];
+    }
+
+    try {
+        $pdo = db_ro();
+        $stmt = $pdo->prepare('SELECT id_usuario, nombre, apellido, email FROM tbl_usuarios WHERE email = ? AND activo = 1 LIMIT 1');
+        $stmt->execute([$email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user) {
+            return $genericOk;
+        }
+
+        $userId = (int) $user['id_usuario'];
+        $pdoRw = db_rw();
+
+        $lastStmt = $pdoRw->prepare('
+            SELECT fecha_creacion, expires_at FROM tbl_login_otp
+            WHERE usuario_id = ? AND consumed_at IS NULL
+            ORDER BY id_otp DESC LIMIT 1
+        ');
+        $lastStmt->execute([$userId]);
+        $last = $lastStmt->fetch(PDO::FETCH_ASSOC);
+        if (
+            $last
+            && strtotime((string) $last['expires_at']) >= time()
+            && (time() - strtotime((string) $last['fecha_creacion'])) < 60
+        ) {
+            return $genericOk;
+        }
+
+        $code = (string) random_int(100000, 999999);
+        $codeHash = password_hash($code, PASSWORD_DEFAULT);
+        $now = time();
+        $createdAt = date('Y-m-d H:i:s', $now);
+        $expiresAt = date('Y-m-d H:i:s', $now + 600);
+
+        $pdoRw->prepare('UPDATE tbl_login_otp SET consumed_at = NOW() WHERE usuario_id = ? AND consumed_at IS NULL')
+            ->execute([$userId]);
+
+        $insert = $pdoRw->prepare('
+            INSERT INTO tbl_login_otp (usuario_id, code_hash, expires_at, fecha_creacion)
+            VALUES (?, ?, ?, ?)
+        ');
+        $insert->execute([$userId, $codeHash, $expiresAt, $createdAt]);
+
+        require_once __DIR__ . '/login_code_email.php';
+        require_once __DIR__ . '/email.php';
+
+        $nombre = trim(($user['nombre'] ?? '') . ' ' . ($user['apellido'] ?? ''));
+        $body = generateLoginCodeEmail($nombre !== '' ? $nombre : 'Cliente', $code);
+        sendEmail($user['email'], 'Tu código de acceso — Yofi', $body, true);
+
+        return $genericOk;
+    } catch (Throwable $e) {
+        error_log('requestLoginCode: ' . $e->getMessage());
+
+        return ['success' => false, 'message' => 'Error al procesar la solicitud'];
+    }
+}
+
+/**
+ * Valida un código de acceso y, si es correcto, establece la sesión del usuario.
+ */
+function verifyLoginCode(string $email, string $code): array
+{
+    $email = trim($email);
+    $code = trim($code);
+
+    if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL) || $code === '') {
+        return ['success' => false, 'message' => 'Datos inválidos'];
+    }
+
+    try {
+        $pdo = db_rw();
+        $stmt = $pdo->prepare('
+            SELECT o.id_otp, o.usuario_id, o.code_hash, o.attempts, o.expires_at, u.*
+            FROM tbl_login_otp o
+            INNER JOIN tbl_usuarios u ON u.id_usuario = o.usuario_id
+            WHERE u.email = ? AND o.consumed_at IS NULL
+            ORDER BY o.id_otp DESC LIMIT 1
+        ');
+        $stmt->execute([$email]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row || strtotime((string) $row['expires_at']) < time()) {
+            return ['success' => false, 'message' => 'Código inválido o vencido. Pedí uno nuevo.'];
+        }
+
+        if ((int) $row['attempts'] >= 5) {
+            $pdo->prepare('UPDATE tbl_login_otp SET consumed_at = NOW() WHERE id_otp = ?')->execute([$row['id_otp']]);
+
+            return ['success' => false, 'message' => 'Demasiados intentos. Pedí un código nuevo.'];
+        }
+
+        if (!password_verify($code, (string) $row['code_hash'])) {
+            $pdo->prepare('UPDATE tbl_login_otp SET attempts = attempts + 1 WHERE id_otp = ?')->execute([$row['id_otp']]);
+
+            return ['success' => false, 'message' => 'Código incorrecto.'];
+        }
+
+        $pdo->prepare('UPDATE tbl_login_otp SET consumed_at = NOW() WHERE id_otp = ?')->execute([$row['id_otp']]);
+        $pdo->prepare('UPDATE tbl_usuarios SET fecha_ultimo_acceso = NOW() WHERE id_usuario = ?')->execute([(int) $row['usuario_id']]);
+
+        establishUserSession($row, false);
+        syncUserOrdersByEmail((int) $row['usuario_id']);
+
+        return [
+            'success' => true,
+            'user' => [
+                'id' => (int) $row['usuario_id'],
+                'email' => $row['email'],
+                'name' => trim(($row['nombre'] ?? '') . ' ' . ($row['apellido'] ?? '')),
+            ],
+        ];
+    } catch (Throwable $e) {
+        error_log('verifyLoginCode: ' . $e->getMessage());
+
+        return ['success' => false, 'message' => 'Error al procesar la solicitud'];
+    }
+}

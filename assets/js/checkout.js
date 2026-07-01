@@ -458,6 +458,163 @@
         });
     }
 
+    var loginCodeState = { checkedEmail: null, sentEmail: null, resendAt: 0, declinedEmail: null };
+    var loginCodeCheckTimer = null;
+    var loginCodeModalEl = null;
+
+    function closeLoginCodeModal() {
+        if (loginCodeModalEl) {
+            loginCodeModalEl.remove();
+            loginCodeModalEl = null;
+        }
+    }
+
+    function openLoginCodeModal(email) {
+        closeLoginCodeModal();
+
+        var overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-dark/50 z-50 flex items-center justify-center px-4';
+        overlay.setAttribute('data-login-code-modal', '');
+        overlay.innerHTML =
+            '<div class="bg-white rounded-2xl w-full max-w-sm p-6 relative shadow-xl">' +
+            '<button type="button" class="absolute top-4 right-4 text-earth hover:text-dark" data-login-code-close aria-label="Cerrar">&times;</button>' +
+            '<h3 class="text-lg font-extrabold text-dark mb-1">Verificá tu email</h3>' +
+            '<p class="text-sm text-earth mb-4" data-login-code-subtitle>Enviando un código a <strong>' + escapeHtml(email) + '</strong>...</p>' +
+            '<div data-login-code-body></div>' +
+            '</div>';
+
+        document.body.appendChild(overlay);
+        loginCodeModalEl = overlay;
+
+        overlay.addEventListener('click', function (e) {
+            if (e.target === overlay) {
+                loginCodeState.declinedEmail = email;
+                closeLoginCodeModal();
+            }
+        });
+        overlay.querySelector('[data-login-code-close]').addEventListener('click', function () {
+            loginCodeState.declinedEmail = email;
+            closeLoginCodeModal();
+        });
+
+        sendLoginCode(email);
+    }
+
+    function renderLoginCodeStep(email, errorMessage) {
+        if (!loginCodeModalEl) return;
+        var subtitle = loginCodeModalEl.querySelector('[data-login-code-subtitle]');
+        if (subtitle) subtitle.innerHTML = 'Ingresá el código de 6 dígitos que enviamos a <strong>' + escapeHtml(email) + '</strong>';
+
+        var body = loginCodeModalEl.querySelector('[data-login-code-body]');
+        if (!body) return;
+        body.innerHTML =
+            '<input type="text" inputmode="numeric" maxlength="6" placeholder="000000" autofocus ' +
+            'class="w-full text-center text-2xl tracking-[0.5em] rounded-xl border border-cream px-3 py-3 mb-3" data-login-code-input>' +
+            '<p class="text-xs text-accent mb-3 min-h-[1rem]" data-login-code-error>' + escapeHtml(errorMessage || '') + '</p>' +
+            '<button type="button" class="w-full bg-accent text-white font-bold py-3 rounded-full" data-login-code-verify>Confirmar código</button>' +
+            '<p class="text-center text-xs text-earth mt-3"><button type="button" class="text-accent underline" data-login-code-resend>Reenviar código</button></p>';
+
+        var input = body.querySelector('[data-login-code-input]');
+        input.focus();
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') verifyLoginCode(email, input.value.trim());
+        });
+        body.querySelector('[data-login-code-verify]').addEventListener('click', function () {
+            verifyLoginCode(email, input.value.trim());
+        });
+        body.querySelector('[data-login-code-resend]').addEventListener('click', function () {
+            sendLoginCode(email);
+        });
+    }
+
+    function showLoginCodeError(message) {
+        if (!loginCodeModalEl) return;
+        var err = loginCodeModalEl.querySelector('[data-login-code-error]');
+        if (err) err.textContent = message || '';
+    }
+
+    function sendLoginCode(email) {
+        if (Date.now() < loginCodeState.resendAt) return;
+        loginCodeState.resendAt = Date.now() + 60000;
+
+        fetch(apiUrl('public/api/request-login-code.php'), {
+            method: 'POST',
+            headers: csrfHeaders(),
+            body: JSON.stringify({ email: email }),
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!loginCodeModalEl) return;
+                if (data && data.success) {
+                    loginCodeState.sentEmail = email;
+                    renderLoginCodeStep(email);
+                } else {
+                    closeLoginCodeModal();
+                }
+            })
+            .catch(function () { closeLoginCodeModal(); });
+    }
+
+    function verifyLoginCode(email, code) {
+        if (!code) {
+            showLoginCodeError('Ingresá el código que te enviamos.');
+            return;
+        }
+
+        fetch(apiUrl('public/api/verify-login-code.php'), {
+            method: 'POST',
+            headers: csrfHeaders(),
+            body: JSON.stringify({ email: email, code: code }),
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.success) {
+                    if (loginCodeModalEl) {
+                        loginCodeModalEl.querySelector('[data-login-code-body]').innerHTML = '';
+                        loginCodeModalEl.querySelector('[data-login-code-subtitle]').textContent = '¡Listo! Cargando tus datos...';
+                    }
+                    setTimeout(function () { window.location.reload(); }, 800);
+                } else {
+                    showLoginCodeError((data && data.message) || 'Código incorrecto.');
+                }
+            })
+            .catch(function () {
+                showLoginCodeError('Error de conexión. Intentá de nuevo.');
+            });
+    }
+
+    function checkEmailForLoginCode(email) {
+        if (loginCodeState.checkedEmail === email) return;
+        loginCodeState.checkedEmail = email;
+
+        fetch(apiUrl('public/api/check-email.php?email=' + encodeURIComponent(email)))
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (loginCodeState.checkedEmail !== email) return;
+                if (data && data.tiene_cuenta && loginCodeState.declinedEmail !== email) {
+                    openLoginCodeModal(email);
+                }
+            })
+            .catch(function () {});
+    }
+
+    function initLoginCodeCheck() {
+        if (bootstrap.user) return;
+        var emailEl = document.getElementById('co-email');
+        if (!emailEl) return;
+
+        function schedule() {
+            var email = emailEl.value.trim();
+            if (loginCodeState.sentEmail === email) return;
+            clearTimeout(loginCodeCheckTimer);
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+            loginCodeCheckTimer = setTimeout(function () { checkEmailForLoginCode(email); }, 500);
+        }
+
+        emailEl.addEventListener('input', schedule);
+        emailEl.addEventListener('blur', schedule);
+    }
+
     function renderAddresses() {
         var list = document.querySelector('[data-checkout-address-list]');
         if (!list || !bootstrap.addresses || !bootstrap.addresses.length) return;
@@ -537,6 +694,7 @@
         renderAddresses();
         updateSummary();
         loadPaymentMethods();
+        initLoginCodeCheck();
 
         ['co-zip', 'co-city', 'co-province'].forEach(function (id) {
             var el = document.getElementById(id);
