@@ -117,6 +117,51 @@ function generateOrderReceivedEmail(array $orderData, array $items, string $meto
 }
 
 /**
+ * @param array<string, mixed> $orderData
+ * @param array<int, array<string, mixed>> $items
+ */
+function generateAdminNewOrderEmail(array $orderData, array $items, string $metodoPago, string $orderUrl = ''): string
+{
+    $numeroOrden = (string) ($orderData['numero_orden'] ?? '');
+    $nombre = trim((string) ($orderData['nombre'] ?? '') . ' ' . (string) ($orderData['apellido'] ?? ''));
+    $email = (string) ($orderData['email'] ?? '');
+    $telefono = (string) ($orderData['telefono'] ?? '');
+    $direccion = trim(
+        (string) ($orderData['direccion'] ?? '') . ', '
+        . (string) ($orderData['ciudad'] ?? '') . ', '
+        . (string) ($orderData['provincia'] ?? '') . ' (CP ' . (string) ($orderData['codigo_postal'] ?? '') . ')'
+    );
+    $total = number_format((float) ($orderData['total'] ?? 0), 0, ',', '.');
+
+    $itemsHtml = '';
+    foreach ($items as $item) {
+        $nombreItem = (string) ($item['nombre'] ?? 'Producto');
+        $variante = trim((string) ($item['color_nombre'] ?? '') . ' ' . (string) ($item['talle_nombre'] ?? ''));
+        $cantidad = (int) ($item['cantidad'] ?? 1);
+
+        $itemsHtml .= '<li>' . htmlspecialchars($nombreItem, ENT_QUOTES, 'UTF-8')
+            . ($variante !== '' ? ' (' . htmlspecialchars($variante, ENT_QUOTES, 'UTF-8') . ')' : '')
+            . ' × ' . $cantidad . '</li>';
+    }
+
+    $body = '<p>Entró un pedido nuevo en Yofi.</p>'
+        . '<ul style="line-height:1.6;">'
+        . '<li><strong>Pedido:</strong> #' . htmlspecialchars($numeroOrden, ENT_QUOTES, 'UTF-8') . '</li>'
+        . '<li><strong>Cliente:</strong> ' . htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8') . '</li>'
+        . '<li><strong>Email:</strong> ' . htmlspecialchars($email, ENT_QUOTES, 'UTF-8') . '</li>'
+        . '<li><strong>Teléfono:</strong> ' . htmlspecialchars($telefono, ENT_QUOTES, 'UTF-8') . '</li>'
+        . '<li><strong>Dirección:</strong> ' . htmlspecialchars($direccion, ENT_QUOTES, 'UTF-8') . '</li>'
+        . '<li><strong>Método de pago:</strong> ' . htmlspecialchars($metodoPago, ENT_QUOTES, 'UTF-8') . '</li>'
+        . '<li><strong>Total:</strong> $' . $total . '</li>'
+        . '</ul>'
+        . '<p><strong>Productos:</strong></p>'
+        . '<ul style="line-height:1.6;">' . $itemsHtml . '</ul>'
+        . ($orderUrl !== '' ? '<p><a href="' . htmlspecialchars($orderUrl, ENT_QUOTES, 'UTF-8') . '" style="color:#E1644B;">Ver pedido en el admin</a></p>' : '');
+
+    return order_email_wrap('Nuevo pedido #' . $numeroOrden, $body);
+}
+
+/**
  * @param array<string, mixed> $orderRow
  */
 function generateAdminPaymentApprovedEmail(

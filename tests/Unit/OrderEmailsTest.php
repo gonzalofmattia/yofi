@@ -79,4 +79,45 @@ final class OrderEmailsTest extends TestCase
 
         $this->assertStringContainsString('Stock insuficiente', $html);
     }
+
+    public function testGenerateAdminNewOrderEmailIncludesCustomerAndOrderDetails(): void
+    {
+        $orderData = [
+            'numero_orden' => 'ORD-20260701-TEST02',
+            'nombre' => 'Juan',
+            'apellido' => 'Pérez',
+            'email' => 'juan@example.com',
+            'telefono' => '1122334455',
+            'direccion' => 'Av. Corrientes 1234',
+            'ciudad' => 'CABA',
+            'provincia' => 'Ciudad Autónoma de Buenos Aires',
+            'codigo_postal' => '1414',
+            'total' => 15000,
+        ];
+        $items = [[
+            'nombre' => 'Bandana tejida',
+            'color_nombre' => 'Chocolate',
+            'talle_nombre' => 'Único',
+            'cantidad' => 2,
+        ]];
+
+        $html = generateAdminNewOrderEmail($orderData, $items, 'transferencia', 'http://yofi.test/admin/pedidos/detalle.php?id=18');
+
+        $this->assertStringContainsString('ORD-20260701-TEST02', $html);
+        $this->assertStringContainsString('juan@example.com', $html);
+        $this->assertStringContainsString('1122334455', $html);
+        $this->assertStringContainsString('Av. Corrientes 1234', $html);
+        $this->assertStringContainsString('Bandana tejida', $html);
+        $this->assertStringContainsString('transferencia', $html);
+        $this->assertStringContainsString('/admin/pedidos/detalle.php?id=18', $html);
+    }
+
+    public function testGenerateAdminNewOrderEmailEscapesCustomerName(): void
+    {
+        $orderData = ['numero_orden' => 'ORD-1', 'nombre' => '<script>alert(1)</script>', 'apellido' => '', 'total' => 0];
+
+        $html = generateAdminNewOrderEmail($orderData, [], 'mercadopago');
+
+        $this->assertStringNotContainsString('<script>alert(1)</script>', $html);
+    }
 }
