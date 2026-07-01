@@ -301,6 +301,19 @@ try {
         $emailBody = generateOrderReceivedEmail($orderData, $itemsCorregidos, $metodoPago);
         $emailSubject = 'Recibimos tu pedido #' . $numeroOrden . ' - Yofi';
         sendEmail($email, $emailSubject, $emailBody, true);
+
+        $adminOrderData = $orderData + [
+            'email' => $email,
+            'telefono' => $telefono,
+            'direccion' => $direccion,
+            'ciudad' => $ciudad,
+            'provincia' => $provincia,
+            'codigo_postal' => $codigoPostal,
+        ];
+        $adminUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/pedidos/detalle.php?id=' . $orderId;
+        $adminBody = generateAdminNewOrderEmail($adminOrderData, $itemsCorregidos, $metodoPago, $adminUrl);
+        $adminTo = defined('MAIL_ADMIN') ? MAIL_ADMIN : 'hola@yofi.com.ar';
+        sendEmail($adminTo, 'Nuevo pedido #' . $numeroOrden . ' - Yofi', $adminBody, true);
     } catch (Throwable $e) {
         error_log('checkout/process.php: error al enviar email de confirmación: ' . $e->getMessage());
     }
