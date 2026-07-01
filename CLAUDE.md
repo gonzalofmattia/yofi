@@ -349,14 +349,17 @@ No modificar el frontend público hasta que los cambios en admin estén validado
 
 ## 11. Deploy — proceso
 
-El deploy a DonWeb es manual y tiene pasos específicos:
+El deploy a DonWeb es manual y tiene pasos específicos. Detalle completo del
+mecanismo (detección incremental por `git diff`, flags disponibles, casos
+especiales) documentado en `deploy/README.md`.
 
 1. Correr tests → deben pasar todos
 2. Mergear a main
 3. Ejecutar `deploy/deploy.php` (requiere confirmación explícita)
    - Valida 6 archivos de config
+   - Sube por FTP **solo los archivos modificados desde el último deploy**
+     (git diff contra el commit del último deploy — ver `deploy/README.md`)
    - Exporta DB con `mysqldump` (excluye `tbl_sessions`) → `deploy/dumps/*.sql.gz`
-   - Sube archivos vía FTP puerto 21
 4. Importar DB en DonWeb manualmente vía phpMyAdmin (no automatizable)
 
 ---

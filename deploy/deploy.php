@@ -4,6 +4,8 @@
 /**
  * Deploy de Yofi a producción (DonWeb) vía FTP.
  *
+ * Detección de cambios, flags y flujo recomendado: ver deploy/README.md
+ *
  * Uso:
  *   php deploy/deploy.php                  Deploy completo (dump + archivos)
  *   php deploy/deploy.php --files-only     Solo subir archivos (sin exportar BD)
@@ -442,6 +444,17 @@ function collectDeployFiles(): array
 
 // ---------------------------------------------------------------------------
 // Manifest incremental (solo sube archivos modificados desde el último deploy OK)
+//
+// El proyecto vive en git y el deploy siempre se hace desde main recién
+// mergeado. Por eso la detección de cambios usa `git diff` contra el commit
+// del último deploy en vez de mtime: un `git checkout`/`pull`/merge cambia el
+// mtime de TODOS los archivos aunque el contenido sea idéntico, lo que hacía
+// que el manifest anterior (size+mtime) nunca detectara "sin cambios" y
+// terminara subiendo el proyecto entero por FTP en cada deploy.
+//
+// Los archivos config/*.production.php no están versionados (gitignored), así
+// que para ellos se sigue usando un fingerprint propio, pero por hash de
+// contenido (no por mtime) para que no dependa del filesystem.
 // ---------------------------------------------------------------------------
 
 function deployManifestPath(): string
@@ -453,21 +466,26 @@ function loadDeployManifest(): array
 {
     $path = deployManifestPath();
     if (!is_file($path)) {
-        return ['files' => []];
+        return ['last_commit' => null, 'config_files' => []];
     }
 
     $data = json_decode((string) file_get_contents($path), true);
+    if (!is_array($data)) {
+        return ['last_commit' => null, 'config_files' => []];
+    }
 
-    return is_array($data) && isset($data['files']) && is_array($data['files'])
-        ? $data
-        : ['files' => []];
+    return [
+        'last_commit' => is_string($data['last_commit'] ?? null) ? $data['last_commit'] : null,
+        'config_files' => is_array($data['config_files'] ?? null) ? $data['config_files'] : [],
+    ];
 }
 
-function saveDeployManifest(array $files): void
+function saveDeployManifest(string $commit, array $configFiles): void
 {
     $payload = [
         'updated_at' => date('c'),
-        'files' => $files,
+        'last_commit' => $commit,
+        'config_files' => $configFiles,
     ];
     file_put_contents(
         deployManifestPath(),
@@ -475,33 +493,132 @@ function saveDeployManifest(array $files): void
     );
 }
 
-function fileDeployFingerprint(string $absolutePath): ?array
+function configFileHash(string $absolutePath): ?string
 {
     if (!is_file($absolutePath)) {
         return null;
     }
 
-    return [
-        'size' => filesize($absolutePath),
-        'mtime' => filemtime($absolutePath),
-    ];
+    $hash = hash_file('sha1', $absolutePath);
+
+    return $hash !== false ? $hash : null;
 }
 
-function fileUnchangedInManifest(string $manifestKey, string $absolutePath, array $manifest, bool $forceFull): bool
+// ---------------------------------------------------------------------------
+// Git: detección de archivos modificados desde el último deploy
+// ---------------------------------------------------------------------------
+
+function runGit(array $args): ?string
 {
-    if ($forceFull) {
-        return false;
+    $cmd = 'git -C ' . escapeshellarg(YOFI_ROOT) . ' -c core.quotePath=false '
+        . implode(' ', array_map('escapeshellarg', $args));
+
+    $descriptors = [1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+    $process = proc_open($cmd, $descriptors, $pipes);
+    if (!is_resource($process)) {
+        return null;
     }
 
-    $fp = fileDeployFingerprint($absolutePath);
-    if ($fp === null || !isset($manifest['files'][$manifestKey])) {
-        return false;
+    $stdout = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $code = proc_close($process);
+
+    return $code === 0 ? $stdout : null;
+}
+
+function getCurrentGitCommit(): ?string
+{
+    $out = runGit(['rev-parse', 'HEAD']);
+
+    return $out !== null ? trim($out) : null;
+}
+
+function gitCommitExists(string $sha): bool
+{
+    return $sha !== '' && runGit(['cat-file', '-e', $sha . '^{commit}']) !== null;
+}
+
+function gitDiffNameOnly(string $fromSha, string $toSha): array
+{
+    $out = runGit(['diff', '--name-only', $fromSha, $toSha]);
+    if ($out === null) {
+        return [];
     }
 
-    $prev = $manifest['files'][$manifestKey];
+    return array_values(array_filter(array_map('trim', explode("\n", $out)), fn ($l) => $l !== ''));
+}
 
-    return (int) ($prev['size'] ?? -1) === (int) $fp['size']
-        && (int) ($prev['mtime'] ?? -1) === (int) $fp['mtime'];
+/** Cambios no commiteados (staged, unstaged, untracked) — por si hay edición manual sin commit. */
+function gitWorkingTreeChanges(): array
+{
+    $out = runGit(['status', '--porcelain']);
+    if ($out === null) {
+        return [];
+    }
+
+    $paths = [];
+    foreach (explode("\n", $out) as $line) {
+        if ($line === '') {
+            continue;
+        }
+        $path = substr($line, 3);
+        if (strpos($path, ' -> ') !== false) {
+            [$old, $new] = explode(' -> ', $path, 2);
+            $paths[] = trim($old, '"');
+            $paths[] = trim($new, '"');
+            continue;
+        }
+        $paths[] = trim($path, '"');
+    }
+
+    return $paths;
+}
+
+/**
+ * Determina qué archivos subir/borrar comparando el commit del último deploy
+ * exitoso contra HEAD. Si no hay baseline (primer deploy) o se pidió --full,
+ * se hace una subida completa con el listado actual del filesystem.
+ */
+function resolveChangedFiles(array $manifest, string $currentCommit, bool $forceFull): array
+{
+    $lastCommit = $manifest['last_commit'];
+
+    if ($forceFull || $currentCommit === '' || $lastCommit === null || !gitCommitExists($lastCommit)) {
+        return [
+            'mode' => 'full',
+            'upload' => collectDeployFiles(),
+            'delete' => [],
+        ];
+    }
+
+    $changed = array_unique(array_merge(
+        gitDiffNameOnly($lastCommit, $currentCommit),
+        gitWorkingTreeChanges()
+    ));
+
+    $upload = [];
+    $delete = [];
+    foreach ($changed as $relative) {
+        $relative = str_replace('\\', '/', $relative);
+        if ($relative === '' || shouldExcludeFromDeploy($relative)) {
+            continue;
+        }
+
+        if (is_file(YOFI_ROOT . '/' . $relative)) {
+            $upload[] = $relative;
+        } else {
+            $delete[] = $relative;
+        }
+    }
+    sort($upload);
+    sort($delete);
+
+    return [
+        'mode' => 'incremental',
+        'upload' => $upload,
+        'delete' => $delete,
+    ];
 }
 
 // ---------------------------------------------------------------------------
@@ -653,11 +770,31 @@ function ftpUploadFileInBase($conn, string $basePwd, string $localPath, string $
     return $ok;
 }
 
-function uploadProductionConfigs(array $config, array $options, array &$manifestFiles): array
+/** Borra un archivo remoto que ya no existe en local. No falla el deploy si no se puede borrar. */
+function ftpDeleteFileInBase($conn, string $basePwd, string $relativePath): bool
+{
+    if (!@ftp_chdir($conn, $basePwd)) {
+        return false;
+    }
+
+    $relativePath = str_replace('\\', '/', $relativePath);
+    $dir = dirname($relativePath);
+    $fileName = basename($relativePath);
+
+    if ($dir !== '.' && !@ftp_chdir($conn, $dir)) {
+        @ftp_chdir($conn, $basePwd);
+        return true; // el directorio ya no existe remoto: nada que borrar
+    }
+
+    $ok = @ftp_delete($conn, $fileName);
+    @ftp_chdir($conn, $basePwd);
+
+    return $ok;
+}
+
+function uploadProductionConfigs(array $config, array $options, array &$configFiles): array
 {
     $stats = ['uploaded' => 0, 'skipped' => 0, 'errors' => 0, 'config_files' => 0];
-    $manifest = loadDeployManifest();
-    $remoteBase = trim(str_replace('\\', '/', $config['ftp']['remote_path']), '/');
     $forceFull = $options['force_full'];
 
     $session = ftpOpenSession($config);
@@ -677,12 +814,12 @@ function uploadProductionConfigs(array $config, array $options, array &$manifest
             continue;
         }
 
-        if (fileUnchangedInManifest($remoteLocal, $localPath, $manifest, $forceFull)) {
+        $hash = configFileHash($localPath);
+        $unchanged = !$forceFull && $hash !== null && ($configFiles[$remoteLocal]['hash'] ?? null) === $hash;
+
+        if ($unchanged) {
             $stats['skipped']++;
             $stats['config_files']++;
-            if (isset($manifest['files'][$remoteLocal])) {
-                $manifestFiles[$remoteLocal] = $manifest['files'][$remoteLocal];
-            }
             echo "  ○ {$localProduction} → {$remoteLocal} (sin cambios)\n";
             continue;
         }
@@ -701,9 +838,8 @@ function uploadProductionConfigs(array $config, array $options, array &$manifest
         if ($ok) {
             $stats['config_files']++;
             $stats['uploaded']++;
-            $fp = fileDeployFingerprint($localPath);
-            if ($fp !== null) {
-                $manifestFiles[$remoteLocal] = $fp;
+            if ($hash !== null) {
+                $configFiles[$remoteLocal] = ['hash' => $hash];
             }
             echo "  ✓ {$localProduction} → {$remoteLocal}\n";
         } else {
@@ -719,19 +855,26 @@ function uploadProductionConfigs(array $config, array $options, array &$manifest
 
 function uploadViaFtp(array $config, array $options): array
 {
-    $stats = ['uploaded' => 0, 'skipped' => 0, 'errors' => 0, 'config_files' => 0];
+    $stats = ['uploaded' => 0, 'skipped' => 0, 'errors' => 0, 'config_files' => 0, 'deleted' => 0];
     $manifest = loadDeployManifest();
-    $manifestFiles = $manifest['files'];
+    $configFiles = $manifest['config_files'];
     $forceFull = $options['force_full'];
     $remoteBase = trim(str_replace('\\', '/', $config['ftp']['remote_path']), '/');
+    $currentCommit = getCurrentGitCommit();
 
     if ($options['config_only']) {
         echo "[FTP] Modo --config-only\n\n";
         echo "[FTP] Configuración de producción (.production.php → .local.php)...\n";
-        $cfgStats = uploadProductionConfigs($config, $options, $manifestFiles);
-        saveDeployManifest($manifestFiles);
+        $cfgStats = uploadProductionConfigs($config, $options, $configFiles);
+        saveDeployManifest($currentCommit ?? ($manifest['last_commit'] ?? ''), $configFiles);
         return $cfgStats;
     }
+
+    if ($currentCommit === null) {
+        echo "[GIT] No se pudo leer el commit actual (¿no es un repo git?). Se hará subida completa.\n\n";
+    }
+
+    $change = resolveChangedFiles($manifest, $currentCommit ?? '', $forceFull);
 
     $session = ftpOpenSession($config);
     if ($session === false) {
@@ -744,38 +887,20 @@ function uploadViaFtp(array $config, array $options): array
 
     echo "  ✓ Conexión FTP establecida\n";
     echo "  → Destino: {$basePwd}/\n";
-    echo $forceFull
-        ? "  → Modo: subida completa (--full)\n\n"
-        : "  → Modo: incremental (solo archivos modificados)\n\n";
+    echo $change['mode'] === 'full'
+        ? "  → Modo: subida completa" . ($forceFull ? ' (--full)' : ' (sin baseline previo)') . "\n\n"
+        : "  → Modo: incremental (git diff desde el último deploy: " . substr($manifest['last_commit'], 0, 8) . ")\n\n";
 
-    $files = collectDeployFiles();
-    $total = count($files);
-    $toUpload = 0;
+    $toUpload = $change['upload'];
+    $toDelete = $change['delete'];
+    $total = count($toUpload);
 
-    foreach ($files as $relative) {
-        $localPath = YOFI_ROOT . '/' . $relative;
-        if (!fileUnchangedInManifest($relative, $localPath, $manifest, $forceFull)) {
-            $toUpload++;
-        }
-    }
+    echo "[FTP] {$total} archivo(s) para subir, " . count($toDelete) . " para eliminar\n\n";
 
-    echo "[FTP] {$total} archivos en proyecto, {$toUpload} para subir, " . ($total - $toUpload) . " sin cambios\n\n";
-
-    foreach ($files as $index => $relative) {
+    foreach ($toUpload as $index => $relative) {
         $localPath = YOFI_ROOT . '/' . $relative;
 
         if (!is_file($localPath)) {
-            continue;
-        }
-
-        if (fileUnchangedInManifest($relative, $localPath, $manifest, $forceFull)) {
-            $stats['skipped']++;
-            if (isset($manifest['files'][$relative])) {
-                $manifestFiles[$relative] = $manifest['files'][$relative];
-            }
-            if (($index + 1) % 100 === 0 || $index + 1 === $total) {
-                echo "  → Progreso: " . ($index + 1) . "/{$total} (omitidos hasta ahora: {$stats['skipped']})\n";
-            }
             continue;
         }
 
@@ -795,33 +920,37 @@ function uploadViaFtp(array $config, array $options): array
 
         if ($ok) {
             $stats['uploaded']++;
-            $fp = fileDeployFingerprint($localPath);
-            if ($fp !== null) {
-                $manifestFiles[$relative] = $fp;
-            }
+            echo "  ✓ {$relative}\n";
         } else {
             $stats['errors']++;
             fwrite(STDERR, "  ✗ Error subiendo: {$relative}\n");
         }
 
         if (($index + 1) % 50 === 0 || $index + 1 === $total) {
-            echo "  → Progreso: " . ($index + 1) . "/{$total} (subidos: {$stats['uploaded']}, omitidos: {$stats['skipped']})\n";
+            echo "  → Progreso: " . ($index + 1) . "/{$total} (subidos: {$stats['uploaded']})\n";
+        }
+    }
+
+    foreach ($toDelete as $relative) {
+        if (ftpDeleteFileInBase($conn, $basePwd, $relative)) {
+            $stats['deleted']++;
+            echo "  ✗ (borrado remoto) {$relative}\n";
         }
     }
 
     @ftp_close($conn);
 
     echo "\n[FTP] Configuración de producción (.production.php → .local.php)...\n";
-    $cfgStats = uploadProductionConfigs($config, $options, $manifestFiles);
+    $cfgStats = uploadProductionConfigs($config, $options, $configFiles);
     $stats['uploaded'] += $cfgStats['uploaded'];
     $stats['skipped'] += $cfgStats['skipped'];
     $stats['errors'] += $cfgStats['errors'];
     $stats['config_files'] = $cfgStats['config_files'];
 
-    if ($stats['errors'] === 0) {
-        saveDeployManifest($manifestFiles);
+    if ($stats['errors'] === 0 && $currentCommit !== null) {
+        saveDeployManifest($currentCommit, $configFiles);
     } else {
-        echo "\n⚠  Manifest no actualizado por errores — el próximo deploy reintentará los fallidos.\n";
+        echo "\n⚠  Manifest no actualizado por errores — el próximo deploy reintentará el rango de cambios completo.\n";
     }
 
     return $stats;
@@ -831,37 +960,37 @@ function dryRunFileList(array $config, array $options): array
 {
     $manifest = loadDeployManifest();
     $forceFull = $options['force_full'];
-    $files = collectDeployFiles();
-    $stats = ['uploaded' => 0, 'skipped' => 0, 'errors' => 0, 'config_files' => 0];
+    $currentCommit = getCurrentGitCommit();
+    $change = resolveChangedFiles($manifest, $currentCommit ?? '', $forceFull);
+    $stats = ['uploaded' => 0, 'skipped' => 0, 'errors' => 0, 'config_files' => 0, 'deleted' => 0];
 
-    $wouldUpload = [];
-    $wouldSkip = [];
-
-    foreach ($files as $relative) {
-        $localPath = YOFI_ROOT . '/' . $relative;
-        if (fileUnchangedInManifest($relative, $localPath, $manifest, $forceFull)) {
-            $wouldSkip[] = $relative;
-            $stats['skipped']++;
-        } else {
-            $wouldUpload[] = $relative;
-            $stats['uploaded']++;
-        }
+    echo 'Modo: ' . ($change['mode'] === 'full' ? 'subida completa' : 'incremental (git diff desde el último deploy)') . "\n";
+    if ($manifest['last_commit'] !== null) {
+        echo "Último deploy en commit: {$manifest['last_commit']}\n";
     }
+    echo 'Commit actual: ' . ($currentCommit ?? '(no disponible)') . "\n";
+    echo "Subirían: " . count($change['upload']) . " | Eliminarían del server: " . count($change['delete']) . "\n\n";
 
-    echo "Modo incremental" . ($forceFull ? ' (--full: ignorar manifest)' : '') . "\n";
-    echo "Subirían: " . count($wouldUpload) . " | Omitidos (sin cambios): " . count($wouldSkip) . "\n\n";
-
-    foreach (array_slice($wouldUpload, 0, 30) as $relative) {
+    foreach (array_slice($change['upload'], 0, 30) as $relative) {
         echo "  + {$relative}\n";
     }
-    if (count($wouldUpload) > 30) {
-        echo "  ... y " . (count($wouldUpload) - 30) . " archivos más\n";
+    if (count($change['upload']) > 30) {
+        echo "  ... y " . (count($change['upload']) - 30) . " archivos más\n";
+    }
+    foreach ($change['delete'] as $relative) {
+        echo "  - {$relative} (eliminar remoto)\n";
     }
 
+    $stats['uploaded'] = count($change['upload']);
+    $stats['deleted'] = count($change['delete']);
+
     echo "\n[DRY-RUN] Configuración remota:\n";
+    $configFiles = $manifest['config_files'];
     foreach (productionConfigMap() as $localProduction => $remoteLocal) {
         $localPath = YOFI_ROOT . '/' . $localProduction;
-        if (fileUnchangedInManifest($remoteLocal, $localPath, $manifest, $forceFull)) {
+        $hash = configFileHash($localPath);
+        $unchanged = !$forceFull && $hash !== null && ($configFiles[$remoteLocal]['hash'] ?? null) === $hash;
+        if ($unchanged) {
             echo "  ○ {$localProduction} → {$remoteLocal} (sin cambios)\n";
             $stats['skipped']++;
         } else {
@@ -901,7 +1030,8 @@ function logDeploySummary(string $started, string $finished, array $dump, array 
     }
     $flagStr = $flags !== [] ? ' [' . implode(',', $flags) . ']' : '';
 
-    $line = "[{$finished}] deploy{$flagStr} | dump={$dumpInfo} | uploaded={$stats['uploaded']} | skipped={$stats['skipped']} | config={$stats['config_files']} | errors={$stats['errors']}\n";
+    $deleted = $stats['deleted'] ?? 0;
+    $line = "[{$finished}] deploy{$flagStr} | dump={$dumpInfo} | uploaded={$stats['uploaded']} | skipped={$stats['skipped']} | deleted={$deleted} | config={$stats['config_files']} | errors={$stats['errors']}\n";
     file_put_contents($logDir . '/deploy.log', $line, FILE_APPEND | LOCK_EX);
 }
 
@@ -929,6 +1059,9 @@ function printFinalSummary(array $dump, array $stats, array $options): void
 
     echo "Archivos subidos: {$stats['uploaded']}\n";
     echo "Sin cambios:      {$stats['skipped']}\n";
+    if (($stats['deleted'] ?? 0) > 0) {
+        echo "Borrados remoto:  {$stats['deleted']}\n";
+    }
     echo "Configs prod.:    {$stats['config_files']}\n";
     if ($stats['errors'] > 0) {
         echo "Errores FTP:      {$stats['errors']}\n";
