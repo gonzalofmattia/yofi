@@ -176,7 +176,7 @@ $checkoutBootstrap = [
             <div class="hidden space-y-6" data-checkout-panel="3">
                 <div class="bg-white rounded-2xl border border-cream p-6">
                     <h2 class="text-lg font-extrabold text-dark mb-2">Método de pago</h2>
-                    <p class="text-sm text-earth mb-4">Serás redirigido a Mercado Pago para completar el pago de forma segura.</p>
+                    <p class="text-sm text-earth mb-4" data-checkout-payment-hint>Serás redirigido a Mercado Pago para completar el pago de forma segura.</p>
                     <div class="space-y-2" data-checkout-payment-methods></div>
                 </div>
                 <button type="button" class="w-full h-14 rounded-full bg-accent text-white font-extrabold text-base tracking-wide hover:brightness-95 transition disabled:opacity-50" data-checkout-submit>
