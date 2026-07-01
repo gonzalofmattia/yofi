@@ -21,7 +21,7 @@ if ($id_orden <= 0 || $estadoNuevo === '') {
     exit;
 }
 
-$stmt = mysqli_prepare($con, 'SELECT estado FROM tbl_ordenes WHERE id_orden = ? LIMIT 1');
+$stmt = mysqli_prepare($con, 'SELECT * FROM tbl_ordenes WHERE id_orden = ? LIMIT 1');
 mysqli_stmt_bind_param($stmt, 'i', $id_orden);
 mysqli_stmt_execute($stmt);
 $row = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
@@ -44,5 +44,36 @@ $stmtHist = mysqli_prepare($con, '
 $notas = 'Cambio manual desde admin';
 mysqli_stmt_bind_param($stmtHist, 'issss', $id_orden, $estadoAnterior, $estadoNuevo, $adminUser, $notas);
 mysqli_stmt_execute($stmtHist);
+
+if ($estadoNuevo !== $estadoAnterior) {
+    try {
+        require_once dirname(__DIR__, 2) . '/src/php/order_emails.php';
+
+        $clienteEmail = (string)($row['email'] ?? '');
+        if ($clienteEmail !== '') {
+            $orderData = [
+                'numero_orden' => (string)($row['numero_orden'] ?? ('ORD-' . $id_orden)),
+                'nombre' => (string)($row['nombre'] ?? ''),
+                'apellido' => (string)($row['apellido'] ?? ''),
+                'total' => (float)($row['total'] ?? 0),
+            ];
+
+            $titulos = [
+                'confirmado' => 'Tu pedido ha sido confirmado',
+                'en_preparacion' => 'Tu pedido está siendo preparado',
+                'preparando_envio' => 'Tu pedido está siendo preparado',
+                'enviado' => '¡Tu pedido ha sido enviado!',
+                'entregado' => 'Tu pedido ha sido entregado',
+                'cancelado' => 'Tu pedido ha sido cancelado',
+            ];
+            $emailSubject = ($titulos[$estadoNuevo] ?? 'Actualización de tu pedido') . ' - Pedido #' . $orderData['numero_orden'] . ' - Yofi';
+            $emailBody = generateEstadoChangeEmail($orderData, $estadoNuevo, $estadoAnterior);
+
+            sendEmail($clienteEmail, $emailSubject, $emailBody, true);
+        }
+    } catch (Throwable $e) {
+        error_log('Error al enviar email de cambio de estado (admin): ' . $e->getMessage());
+    }
+}
 
 echo json_encode(['success' => true, 'estado' => $estadoNuevo]);

@@ -72,6 +72,51 @@ function generateEstadoChangeEmail(
 }
 
 /**
+ * @param array<string, mixed> $orderData
+ * @param array<int, array<string, mixed>> $items
+ */
+function generateOrderReceivedEmail(array $orderData, array $items, string $metodoPago): string
+{
+    $numeroOrden = (string) ($orderData['numero_orden'] ?? '');
+    $nombre = trim((string) ($orderData['nombre'] ?? '') . ' ' . (string) ($orderData['apellido'] ?? ''));
+    $subtotal = number_format((float) ($orderData['subtotal'] ?? 0), 0, ',', '.');
+    $envio = number_format((float) ($orderData['envio'] ?? 0), 0, ',', '.');
+    $total = number_format((float) ($orderData['total'] ?? 0), 0, ',', '.');
+
+    $itemsHtml = '';
+    foreach ($items as $item) {
+        $nombreItem = (string) ($item['nombre'] ?? 'Producto');
+        $variante = trim((string) ($item['color_nombre'] ?? '') . ' ' . (string) ($item['talle_nombre'] ?? ''));
+        $cantidad = (int) ($item['cantidad'] ?? 1);
+        $precio = number_format((float) ($item['precio_unitario'] ?? 0) * $cantidad, 0, ',', '.');
+
+        $itemsHtml .= '<tr>'
+            . '<td style="padding:6px 0;">' . htmlspecialchars($nombreItem, ENT_QUOTES, 'UTF-8')
+            . ($variante !== '' ? ' <span style="color:#7D7D64;font-size:13px;">(' . htmlspecialchars($variante, ENT_QUOTES, 'UTF-8') . ')</span>' : '')
+            . ' × ' . $cantidad . '</td>'
+            . '<td style="padding:6px 0;text-align:right;">$' . $precio . '</td>'
+            . '</tr>';
+    }
+
+    $metodoTexto = $metodoPago === 'transferencia'
+        ? 'Transferencia bancaria. En breve nos pondremos en contacto para coordinar el pago.'
+        : htmlspecialchars($metodoPago, ENT_QUOTES, 'UTF-8');
+
+    $body = '<p>Hola ' . htmlspecialchars($nombre, ENT_QUOTES, 'UTF-8') . ',</p>'
+        . '<p>Recibimos tu pedido y lo estamos procesando.</p>'
+        . '<p><strong>Pedido:</strong> #' . htmlspecialchars($numeroOrden, ENT_QUOTES, 'UTF-8') . '</p>'
+        . '<table style="width:100%;border-collapse:collapse;">' . $itemsHtml . '</table>'
+        . '<table style="width:100%;border-collapse:collapse;margin-top:8px;border-top:1px solid #eee;">'
+        . '<tr><td style="padding:4px 0;">Subtotal</td><td style="padding:4px 0;text-align:right;">$' . $subtotal . '</td></tr>'
+        . '<tr><td style="padding:4px 0;">Envío</td><td style="padding:4px 0;text-align:right;">$' . $envio . '</td></tr>'
+        . '<tr><td style="padding:4px 0;"><strong>Total</strong></td><td style="padding:4px 0;text-align:right;"><strong>$' . $total . '</strong></td></tr>'
+        . '</table>'
+        . '<p style="margin-top:16px;"><strong>Método de pago:</strong> ' . $metodoTexto . '</p>';
+
+    return order_email_wrap('Recibimos tu pedido', $body);
+}
+
+/**
  * @param array<string, mixed> $orderRow
  */
 function generateAdminPaymentApprovedEmail(
