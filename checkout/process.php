@@ -287,6 +287,24 @@ try {
 
     $pdo->commit();
 
+    try {
+        require_once __DIR__ . '/../src/php/order_emails.php';
+
+        $orderData = [
+            'numero_orden' => $numeroOrden,
+            'nombre' => $nombre,
+            'apellido' => $apellido,
+            'subtotal' => $subtotal,
+            'envio' => $envio,
+            'total' => $total,
+        ];
+        $emailBody = generateOrderReceivedEmail($orderData, $itemsCorregidos, $metodoPago);
+        $emailSubject = 'Recibimos tu pedido #' . $numeroOrden . ' - Yofi';
+        sendEmail($email, $emailSubject, $emailBody, true);
+    } catch (Throwable $e) {
+        error_log('checkout/process.php: error al enviar email de confirmación: ' . $e->getMessage());
+    }
+
     checkout_json([
         'success' => true,
         'message' => 'Pedido procesado correctamente',

@@ -22,7 +22,7 @@ function account_sanitize_redirect(string $raw): string
     if ($slug === '') {
         return 'mi-cuenta';
     }
-    $allowed = ['mi-cuenta', 'catalogo', 'home'];
+    $allowed = ['mi-cuenta', 'catalogo', 'home', 'checkout'];
     if (!in_array($slug, $allowed, true)) {
         return 'mi-cuenta';
     }
@@ -90,6 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $redirectParam = isset($_GET['redirect']) ? htmlspecialchars((string) $_GET['redirect'], ENT_QUOTES, 'UTF-8') : '';
 $showForgot = isset($_GET['forgot']) || (($_POST['action'] ?? '') === 'forgot');
+$redirectTargetUrl = page_path(account_sanitize_redirect((string) ($_GET['redirect'] ?? '')));
 ?>
 <section class="w-full px-6 md:px-8 py-10 md:py-16 max-w-md mx-auto">
     <h1 class="text-2xl md:text-3xl font-bold text-dark mb-2"><?php echo $showForgot ? 'Recuperar contraseña' : 'Iniciar sesión'; ?></h1>
@@ -114,24 +115,120 @@ $showForgot = isset($_GET['forgot']) || (($_POST['action'] ?? '') === 'forgot');
         <p class="text-center text-sm"><a href="<?php echo page_path('login'); ?>" class="text-accent underline">Volver al login</a></p>
     </form>
     <?php else: ?>
-    <form method="post" action="<?php echo htmlspecialchars(page_path('login') . ($redirectParam !== '' ? '&redirect=' . urlencode($_GET['redirect'] ?? '') : ''), ENT_QUOTES, 'UTF-8'); ?>" class="space-y-4">
-        <?php echo public_csrf_field(); ?>
-        <?php if ($redirectParam !== ''): ?>
-        <input type="hidden" name="redirect" value="<?php echo $redirectParam; ?>">
-        <?php endif; ?>
+    <div data-login-password-mode>
+        <form method="post" action="<?php echo htmlspecialchars(page_path('login') . ($redirectParam !== '' ? '&redirect=' . urlencode($_GET['redirect'] ?? '') : ''), ENT_QUOTES, 'UTF-8'); ?>" class="space-y-4">
+            <?php echo public_csrf_field(); ?>
+            <?php if ($redirectParam !== ''): ?>
+            <input type="hidden" name="redirect" value="<?php echo $redirectParam; ?>">
+            <?php endif; ?>
+            <div>
+                <label for="email" class="block text-sm font-semibold mb-1">Email</label>
+                <input type="email" id="email" name="email" required autocomplete="email" class="w-full border border-cream rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" value="<?php echo htmlspecialchars((string) ($_POST['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-semibold mb-1">Contraseña</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password" class="w-full border border-cream rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div class="text-right">
+                <a href="<?php echo page_path('login'); ?>&forgot=1" class="text-sm text-accent underline">¿Olvidaste tu contraseña?</a>
+            </div>
+            <button type="submit" class="w-full bg-accent text-white font-bold py-3 rounded-full hover:opacity-90 transition-opacity">Ingresar</button>
+        </form>
+        <p class="text-center text-sm text-earth mt-4"><button type="button" class="text-accent underline" data-login-show-code>Ingresar con un código por email</button></p>
+    </div>
+
+    <div data-login-code-mode hidden class="space-y-4">
         <div>
-            <label for="email" class="block text-sm font-semibold mb-1">Email</label>
-            <input type="email" id="email" name="email" required autocomplete="email" class="w-full border border-cream rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary" value="<?php echo htmlspecialchars((string) ($_POST['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+            <label for="code-email" class="block text-sm font-semibold mb-1">Email</label>
+            <input type="email" id="code-email" required autocomplete="email" class="w-full border border-cream rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
         </div>
-        <div>
-            <label for="password" class="block text-sm font-semibold mb-1">Contraseña</label>
-            <input type="password" id="password" name="password" required autocomplete="current-password" class="w-full border border-cream rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+        <button type="button" class="w-full bg-accent text-white font-bold py-3 rounded-full hover:opacity-90 transition-opacity" data-login-code-send>Enviarme un código</button>
+
+        <div data-login-code-step2 hidden class="space-y-3">
+            <p class="text-sm text-earth">Te enviamos un código a tu email. Ingresalo acá:</p>
+            <input type="text" inputmode="numeric" maxlength="6" placeholder="000000" class="w-full border border-cream rounded-lg px-3 py-2.5 text-sm tracking-widest" data-login-code-input>
+            <button type="button" class="w-full bg-accent text-white font-bold py-3 rounded-full hover:opacity-90 transition-opacity" data-login-code-verify>Verificar código</button>
+            <p class="text-center text-sm"><button type="button" class="text-accent underline" data-login-code-resend>Reenviar código</button></p>
         </div>
-        <div class="text-right">
-            <a href="<?php echo page_path('login'); ?>&forgot=1" class="text-sm text-accent underline">¿Olvidaste tu contraseña?</a>
-        </div>
-        <button type="submit" class="w-full bg-accent text-white font-bold py-3 rounded-full hover:opacity-90 transition-opacity">Ingresar</button>
-    </form>
+        <p class="text-sm text-accent" data-login-code-message></p>
+        <p class="text-center text-sm"><button type="button" class="text-accent underline" data-login-show-password>Volver a usar contraseña</button></p>
+    </div>
+
     <p class="text-center text-sm text-earth mt-6">¿No tenés cuenta? <a href="<?php echo page_path('registro'); ?>" class="text-accent font-semibold underline">Crear cuenta</a></p>
+
+    <script>
+    (function () {
+        var passwordMode = document.querySelector('[data-login-password-mode]');
+        var codeMode = document.querySelector('[data-login-code-mode]');
+        var step2 = document.querySelector('[data-login-code-step2]');
+        var messageEl = document.querySelector('[data-login-code-message]');
+        var redirectUrl = <?php echo json_encode($redirectTargetUrl, JSON_UNESCAPED_UNICODE); ?>;
+        var csrfToken = <?php echo json_encode(generatePublicCsrfToken(), JSON_UNESCAPED_UNICODE); ?>;
+        var basePath = <?php echo json_encode(BASE_PATH, JSON_UNESCAPED_UNICODE); ?>;
+        var resendAt = 0;
+
+        function apiUrl(relative) {
+            return (basePath ? basePath + '/' : '/') + relative;
+        }
+
+        document.querySelector('[data-login-show-code]').addEventListener('click', function () {
+            passwordMode.hidden = true;
+            codeMode.hidden = false;
+        });
+        document.querySelector('[data-login-show-password]').addEventListener('click', function () {
+            codeMode.hidden = true;
+            passwordMode.hidden = false;
+        });
+
+        document.querySelector('[data-login-code-send]').addEventListener('click', function () {
+            var email = document.getElementById('code-email').value.trim();
+            if (!email) return;
+            if (Date.now() < resendAt) return;
+
+            fetch(apiUrl('public/api/request-login-code.php'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                body: JSON.stringify({ email: email }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data && data.success) {
+                        resendAt = Date.now() + 60000;
+                        step2.hidden = false;
+                        messageEl.textContent = '';
+                    } else {
+                        messageEl.textContent = (data && data.message) || 'No se pudo enviar el código.';
+                    }
+                })
+                .catch(function () { messageEl.textContent = 'Error de conexión.'; });
+        });
+
+        document.querySelector('[data-login-code-resend]').addEventListener('click', function () {
+            document.querySelector('[data-login-code-send]').click();
+        });
+
+        document.querySelector('[data-login-code-verify]').addEventListener('click', function () {
+            var email = document.getElementById('code-email').value.trim();
+            var code = document.querySelector('[data-login-code-input]').value.trim();
+            if (!code) return;
+
+            fetch(apiUrl('public/api/verify-login-code.php'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                body: JSON.stringify({ email: email, code: code }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data && data.success) {
+                        messageEl.textContent = '¡Listo! Ingresando...';
+                        window.location.href = redirectUrl;
+                    } else {
+                        messageEl.textContent = (data && data.message) || 'Código incorrecto.';
+                    }
+                })
+                .catch(function () { messageEl.textContent = 'Error de conexión.'; });
+        });
+    })();
+    </script>
     <?php endif; ?>
 </section>

@@ -1,0 +1,9 @@
+{
+    "name": "yofi/yofi",
+    "description": "Yofi e-commerce",
+    "type": "project",
+    "require-dev": {
+        "phpunit/phpunit": "^10"
+    },
+    "require": {}
+}
