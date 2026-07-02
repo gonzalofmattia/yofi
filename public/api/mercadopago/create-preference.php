@@ -245,6 +245,14 @@ if (($mpResp['status_code'] ?? 0) < 200 || ($mpResp['status_code'] ?? 0) >= 300)
 $mpJson = $mpResp['json'] ?? [];
 $preferenceId = $mpJson['id'] ?? null;
 $initPoint = $mpJson['init_point'] ?? null;
+$sandboxInitPoint = $mpJson['sandbox_init_point'] ?? null;
+
+// Con credenciales de prueba hay que redirigir a sandbox_init_point, no a
+// init_point (el de producción) — si no, el checkout de MP muestra el botón
+// de pagar grisado y no se comporta como sandbox.
+if (function_exists('mp_is_sandbox') && mp_is_sandbox() && !empty($sandboxInitPoint)) {
+    $initPoint = $sandboxInitPoint;
+}
 
 if (empty($preferenceId) || empty($initPoint)) {
     json_response(['success' => false, 'message' => 'Respuesta inválida de MercadoPago (id/init_point faltantes)'], 502);
