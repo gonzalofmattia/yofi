@@ -30,3 +30,6 @@ Thumbs.db
 # Si en algún momento usás composer
 vendor/
 composer.lock
+
+# PHPUnit
+.phpunit.result.cache
