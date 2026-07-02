@@ -277,14 +277,19 @@ echo borrado($_GET['borrado'] ?? '', '', 'producto');
             if (!ids.length) return;
             if (action === 'eliminar' && !confirm('¿Eliminar ' + ids.length + ' producto(s)?')) return;
 
+            window.YofiAdmin.setButtonLoading(btn, true, 'Procesando...');
             var res = await fetch('<?= app_path('admin/api/bulk-productos.php') ?>', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json', 'X-CSRF-Token': window.YOFI_ADMIN.csrfToken},
                 body: JSON.stringify({action: action, ids: ids})
             });
             var data = await res.json();
-            if (data.success) location.reload();
-            else alert(data.error || 'Error en acción masiva');
+            if (data.success) {
+                location.reload();
+            } else {
+                window.YofiAdmin.setButtonLoading(btn, false);
+                alert(data.error || 'Error en acción masiva');
+            }
         });
     });
 
