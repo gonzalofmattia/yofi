@@ -58,7 +58,9 @@ try {
     }
 
     $estadoAnterior = (string)($orden['estado'] ?? 'pendiente');
-    $estadoNuevo = 'preparando_envio';
+    // Generar la etiqueta no mueve a un estado intermedio propio: el pedido
+    // sigue 'confirmado' hasta que Zipnova avise 'in_transit' (-> 'enviado').
+    $estadoNuevo = 'confirmado';
 
     $pdo->prepare('UPDATE tbl_ordenes SET estado = ?, fecha_actualizacion = NOW() WHERE id_orden = ?')
         ->execute([$estadoNuevo, $orderId]);

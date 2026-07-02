@@ -43,13 +43,28 @@ function zipnova_verify_webhook(): bool
 function zipnova_map_status(string $zipnovaStatus): ?string
 {
     $map = [
-        'ready_to_ship' => 'preparando_envio',
         'in_transit' => 'enviado',
         'delivered' => 'entregado',
-        'failed' => 'problema_envio',
     ];
 
     return $map[strtolower(trim($zipnovaStatus))] ?? null;
+}
+
+/**
+ * Estados de Zipnova que reconocemos pero que NO disparan una transición de
+ * estado propia en tbl_ordenes (a diferencia de zipnova_map_status()).
+ *
+ * - 'ready_to_ship': el pedido ya está 'confirmado' en ese punto — no existe un
+ *   estado intermedio propio de "preparando envío" en el modelo de 5 estados.
+ * - 'failed' (envío fallido): no se cancela ni se revierte automáticamente el
+ *   pedido; queda tal cual está y se registra en historial/log para que el
+ *   admin decida a mano (reintentar envío o cancelar).
+ *
+ * Igual guardamos el tracking_number si vino, y dejamos rastro en el historial.
+ */
+function zipnova_known_status_without_transition(string $zipnovaStatus): bool
+{
+    return in_array(strtolower(trim($zipnovaStatus)), ['ready_to_ship', 'failed'], true);
 }
 
 http_response_code(200);
@@ -77,11 +92,12 @@ if (!is_array($payload)) {
 
 $zipnovaStatus = (string)($payload['status'] ?? $payload['shipment_status'] ?? '');
 $estadoNuevo = zipnova_map_status($zipnovaStatus);
+$sinTransicionConocida = zipnova_known_status_without_transition($zipnovaStatus);
 $tracking = (string)($payload['tracking_number'] ?? $payload['tracking'] ?? '');
 $shipmentId = (string)($payload['shipment_id'] ?? $payload['id'] ?? '');
 $reference = (string)($payload['reference'] ?? $payload['external_reference'] ?? '');
 
-if ($estadoNuevo === null) {
+if ($estadoNuevo === null && !$sinTransicionConocida) {
     zipnova_webhook_log('Estado Zipnova no mapeado: ' . $zipnovaStatus, 'WARN');
     echo 'OK';
     exit;
@@ -111,8 +127,15 @@ try {
     $orderId = (int)$orden['id_orden'];
     $estadoAnterior = (string)($orden['estado'] ?? 'pendiente');
 
-    $setParts = ['estado = ?', 'fecha_actualizacion = NOW()'];
-    $params = [$estadoNuevo];
+    // $estadoNuevo === null acá solo puede pasar para 'ready_to_ship'/'failed'
+    // ($sinTransicionConocida === true): no tocamos 'estado', pero sí guardamos
+    // el tracking_number si vino y dejamos rastro en el historial.
+    $setParts = ['fecha_actualizacion = NOW()'];
+    $params = [];
+    if ($estadoNuevo !== null) {
+        $setParts[] = 'estado = ?';
+        $params[] = $estadoNuevo;
+    }
 
     if ($tracking !== '') {
         $setParts[] = 'tracking_number = ?';
@@ -131,7 +154,7 @@ try {
     ')->execute([
         $orderId,
         $estadoAnterior,
-        $estadoNuevo,
+        $estadoNuevo ?? $estadoAnterior,
         'Zipnova Webhook',
         'Actualización automática: ' . $zipnovaStatus,
         $tracking !== '' ? $tracking : null,

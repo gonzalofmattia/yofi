@@ -48,6 +48,7 @@ $tabEstados = [
     'pendiente' => 'Pendientes',
     'confirmado' => 'Confirmados',
     'enviado' => 'Enviados',
+    'entregado' => 'Entregados',
     'cancelado' => 'Cancelados',
 ];
 

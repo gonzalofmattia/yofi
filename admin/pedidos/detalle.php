@@ -32,7 +32,7 @@ $historial = mysqli_query($con, "
     ORDER BY fecha_cambio DESC
 ");
 
-$estados = ['pendiente', 'confirmado', 'en_preparacion', 'preparando_envio', 'enviado', 'entregado', 'cancelado'];
+$estados = ['pendiente', 'confirmado', 'enviado', 'entregado', 'cancelado'];
 
 include __DIR__ . '/../header.php';
 ?>

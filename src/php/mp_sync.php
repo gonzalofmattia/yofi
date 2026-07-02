@@ -64,9 +64,8 @@ function mp_sync_map_status(string $mpStatus): string
     switch ($s) {
         case 'approved':
         case 'authorized':
-            return 'confirmado';
         case 'in_process':
-            return 'en_preparacion';
+            return 'confirmado';
         case 'pending':
         case 'in_mediation':
             return 'pendiente';
@@ -88,8 +87,7 @@ function mp_sync_transition_allowed(string $from, string $to): bool
     }
     $allowed = [
         'pendiente' => ['confirmado', 'cancelado'],
-        'confirmado' => ['en_preparacion', 'cancelado'],
-        'en_preparacion' => ['enviado', 'cancelado'],
+        'confirmado' => ['enviado', 'cancelado'],
         'enviado' => ['entregado'],
         'entregado' => [],
         'cancelado' => [],

@@ -417,14 +417,12 @@ body.admin-body {
 }
 
 .badge-status--borrador,
-.badge-status--pendiente,
-.badge-status--en_preparacion {
+.badge-status--pendiente {
     background: var(--yofi-status-amber-bg);
     color: var(--yofi-status-amber-text);
 }
 
-.badge-status--enviado,
-.badge-status--preparando_envio {
+.badge-status--enviado {
     background: var(--yofi-status-blue-bg);
     color: var(--yofi-status-blue-text);
 }
