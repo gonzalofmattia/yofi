@@ -43,13 +43,28 @@ function zipnova_verify_webhook(): bool
 function zipnova_map_status(string $zipnovaStatus): ?string
 {
     $map = [
-        'ready_to_ship' => 'preparando_envio',
         'in_transit' => 'enviado',
         'delivered' => 'entregado',
-        'failed' => 'problema_envio',
     ];
 
     return $map[strtolower(trim($zipnovaStatus))] ?? null;
+}
+
+/**
+ * Estados de Zipnova que reconocemos pero que NO disparan una transición de
+ * estado propia en tbl_ordenes (a diferencia de zipnova_map_status()).
+ *
+ * - 'ready_to_ship': el pedido ya está 'confirmado' en ese punto — no existe un
+ *   estado intermedio propio de "preparando envío" en el modelo de 5 estados.
+ * - 'failed' (envío fallido): no se cancela ni se revierte automáticamente el
+ *   pedido; queda tal cual está y se registra en historial/log para que el
+ *   admin decida a mano (reintentar envío o cancelar).
+ *
+ * Igual guardamos el tracking_number si vino, y dejamos rastro en el historial.
+ */
+function zipnova_known_status_without_transition(string $zipnovaStatus): bool
+{
+    return in_array(strtolower(trim($zipnovaStatus)), ['ready_to_ship', 'failed'], true);
 }
 
 http_response_code(200);
@@ -77,11 +92,12 @@ if (!is_array($payload)) {
 
 $zipnovaStatus = (string)($payload['status'] ?? $payload['shipment_status'] ?? '');
 $estadoNuevo = zipnova_map_status($zipnovaStatus);
+$sinTransicionConocida = zipnova_known_status_without_transition($zipnovaStatus);
 $tracking = (string)($payload['tracking_number'] ?? $payload['tracking'] ?? '');
 $shipmentId = (string)($payload['shipment_id'] ?? $payload['id'] ?? '');
 $reference = (string)($payload['reference'] ?? $payload['external_reference'] ?? '');
 
-if ($estadoNuevo === null) {
+if ($estadoNuevo === null && !$sinTransicionConocida) {
     zipnova_webhook_log('Estado Zipnova no mapeado: ' . $zipnovaStatus, 'WARN');
     echo 'OK';
     exit;
@@ -111,8 +127,15 @@ try {
     $orderId = (int)$orden['id_orden'];
     $estadoAnterior = (string)($orden['estado'] ?? 'pendiente');
 
-    $setParts = ['estado = ?', 'fecha_actualizacion = NOW()'];
-    $params = [$estadoNuevo];
+    // $estadoNuevo === null acá solo puede pasar para 'ready_to_ship'/'failed'
+    // ($sinTransicionConocida === true): no tocamos 'estado', pero sí guardamos
+    // el tracking_number si vino y dejamos rastro en el historial.
+    $setParts = ['fecha_actualizacion = NOW()'];
+    $params = [];
+    if ($estadoNuevo !== null) {
+        $setParts[] = 'estado = ?';
+        $params[] = $estadoNuevo;
+    }
 
     if ($tracking !== '') {
         $setParts[] = 'tracking_number = ?';
@@ -131,11 +154,53 @@ try {
     ')->execute([
         $orderId,
         $estadoAnterior,
-        $estadoNuevo,
+        $estadoNuevo ?? $estadoAnterior,
         'Zipnova Webhook',
         'Actualización automática: ' . $zipnovaStatus,
         $tracking !== '' ? $tracking : null,
     ]);
+
+    // Zipnova es quien realmente marca 'enviado'/'entregado' en producción (no un admin
+    // a mano), así que el mail de cambio de estado se dispara también desde acá — mismo
+    // patrón que admin/api/cambiar-estado-pedido.php y src/php/mp_sync.php.
+    if ($estadoNuevo !== null && $estadoNuevo !== $estadoAnterior) {
+        try {
+            require_once __DIR__ . '/../src/php/order_emails.php';
+
+            $clienteEmail = (string)($orden['email'] ?? '');
+            if ($clienteEmail !== '') {
+                $itemsDecoded = json_decode((string)($orden['items'] ?? '[]'), true);
+                $orderData = [
+                    'numero_orden' => (string)($orden['numero_orden'] ?? ('ORD-' . $orderId)),
+                    'nombre' => (string)($orden['nombre'] ?? ''),
+                    'apellido' => (string)($orden['apellido'] ?? ''),
+                    'total' => (float)($orden['total'] ?? 0),
+                    'id_orden' => $orderId,
+                    'subtotal' => (float)($orden['subtotal'] ?? 0),
+                    'envio' => (float)($orden['envio'] ?? 0),
+                    'items' => is_array($itemsDecoded) ? $itemsDecoded : [],
+                    'direccion' => (string)($orden['direccion'] ?? ''),
+                    'ciudad' => (string)($orden['ciudad'] ?? ''),
+                    'provincia' => (string)($orden['provincia'] ?? ''),
+                    'codigo_postal' => (string)($orden['codigo_postal'] ?? ''),
+                    'tracking_number' => $tracking !== '' ? $tracking : (string)($orden['tracking_number'] ?? ''),
+                    'shipping_carrier' => (string)($orden['shipping_carrier'] ?? ''),
+                    'shipping_eta' => (string)($orden['shipping_eta'] ?? ''),
+                ];
+
+                $titulos = [
+                    'enviado' => '¡Tu pedido ha sido enviado!',
+                    'entregado' => 'Tu pedido ha sido entregado',
+                ];
+                $emailSubject = ($titulos[$estadoNuevo] ?? 'Actualización de tu pedido') . ' - Pedido #' . $orderData['numero_orden'] . ' - Yofi';
+                $emailBody = generateEstadoChangeEmail($orderData, $estadoNuevo, $estadoAnterior);
+
+                sendEmail($clienteEmail, $emailSubject, $emailBody, true);
+            }
+        } catch (Throwable $e) {
+            zipnova_webhook_log('Error al enviar email: ' . $e->getMessage(), 'ERROR');
+        }
+    }
 
     zipnova_webhook_log("OK order_id={$orderId} {$estadoAnterior}->{$estadoNuevo} tracking={$tracking}");
 } catch (Throwable $e) {

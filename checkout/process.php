@@ -297,6 +297,11 @@ try {
             'subtotal' => $subtotal,
             'envio' => $envio,
             'total' => $total,
+            'id_orden' => $orderId,
+            'direccion' => $direccion,
+            'ciudad' => $ciudad,
+            'provincia' => $provincia,
+            'codigo_postal' => $codigoPostal,
         ];
         $emailBody = generateOrderReceivedEmail($orderData, $itemsCorregidos, $metodoPago);
         $emailSubject = 'Recibimos tu pedido #' . $numeroOrden . ' - Yofi';
@@ -305,10 +310,6 @@ try {
         $adminOrderData = $orderData + [
             'email' => $email,
             'telefono' => $telefono,
-            'direccion' => $direccion,
-            'ciudad' => $ciudad,
-            'provincia' => $provincia,
-            'codigo_postal' => $codigoPostal,
         ];
         $adminUrl = (defined('SITE_URL') ? SITE_URL : '') . '/admin/pedidos/detalle.php?id=' . $orderId;
         $adminBody = generateAdminNewOrderEmail($adminOrderData, $itemsCorregidos, $metodoPago, $adminUrl);

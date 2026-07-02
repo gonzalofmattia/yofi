@@ -40,20 +40,29 @@ Yofi es una tienda de ropa infantil construida en PHP puro + MySQL, sin framewor
 ```
 /
 ├── admin/              # Panel de administración (Aye)
-├── checkout/           # Flujo de compra
-│   ├── process.php     # ⚠️ ZONA FRÁGIL — no tocar sin tests
-│   └── mp_sync.php     # ⚠️ ZONA FRÁGIL — webhook MP
+│   └── include/        # funciones.php, includes.php, sidebar.php, config.php
+├── checkout/
+│   └── process.php     # ⚠️ ZONA FRÁGIL — no tocar sin tests
+├── webhooks/
+│   ├── mp-notification.php       # ⚠️ ZONA FRÁGIL — endpoint HTTP del webhook MP
+│   └── zipnova-notification.php  # webhook de Zipnova (tracking de envíos)
+├── src/php/             # Lógica de dominio del front público
+│   ├── mp_sync.php       # ⚠️ ZONA FRÁGIL — lógica real del webhook MP (mp_mercadopago_sync_payment)
+│   ├── order_emails.php  # Generadores de HTML de mails de pedidos
+│   ├── email.php          # Motor de envío (PHPMailer + fallback nativo)
+│   └── stock_reservation.php # Reservar/confirmar/liberar stock
 ├── config/             # Archivos de configuración
 │   ├── *.local.php     # 🔒 NUNCA commitear — en .gitignore
 │   └── *.production.php # 🔒 NUNCA commitear — en .gitignore
 ├── deploy/
 │   └── deploy.php      # 🚫 NUNCA ejecutar sin confirmación explícita
-├── includes/
-│   ├── funciones.php   # Funciones globales centralizadas
-│   ├── sidebar.php     # Admin sidebar
-│   └── includes.php    # Bootstrap de la app
-└── tests/              # PHPUnit — espejo de la estructura del proyecto
+└── tests/              # PHPUnit — actualmente solo tests/Unit/ (ver sección 7.1)
 ```
+
+> Nota: no existe una carpeta `includes/` en la raíz. Las funciones globales del
+> admin viven en `admin/include/funciones.php` e `admin/include/includes.php`
+> (con "include" en singular). La lógica del front público está repartida en
+> `src/php/*.php`, no en un único archivo de funciones.
 
 ---
 
@@ -153,10 +162,10 @@ Cada entidad del admin debe tener:
 
 ### 5.3 Includes obligatorios
 
-Todo archivo PHP debe arrancar con:
+Todo archivo PHP del admin debe arrancar con (ruta real: `admin/include/`, no `includes/`):
 ```php
-require_once '../includes/funciones.php';
-require_once '../includes/includes.php';
+require_once '../include/funciones.php';
+require_once '../include/includes.php';
 ```
 
 ### 5.4 Seguridad — reglas no negociables
@@ -179,8 +188,13 @@ if (!hash_equals($_SESSION['csrf_token'], $_POST['csrf_token'])) {
 ### 6.1 Naming de tablas
 
 Prefijo `tbl_` para todas las tablas. Ejemplos:
-- `tbl_productos`, `tbl_skus`, `tbl_pedidos`, `tbl_usuarios`
+- `tbl_productos`, `tbl_skus`, `tbl_ordenes`, `tbl_usuarios`
 - `tbl_wishlist`, `tbl_slider`, `tbl_config_empresa`
+
+> La tabla de pedidos se llama `tbl_ordenes` (no `tbl_pedidos`). Estado del
+> pedido: columna `estado` (VARCHAR, no ENUM), 5 valores válidos desde la
+> refactorización de 2026-07: `pendiente`, `confirmado`, `enviado`,
+> `entregado`, `cancelado`. Historial de cambios en `tbl_ordenes_historial`.
 
 ### 6.2 Modelo de productos (Carter's/Cheeky)
 
@@ -202,8 +216,8 @@ Claude Code **puede** correr comandos SQL contra la base local de Laragon para:
 
 | Tabla | Regla |
 |---|---|
-| `tbl_pedidos` | No modificar registros existentes sin confirmación |
-| `tbl_skus` | No modificar `stock` directamente — usar funciones centralizadas |
+| `tbl_ordenes` | No modificar registros existentes sin confirmación |
+| `tbl_skus` | No modificar `stock` directamente — usar funciones de `src/php/stock_reservation.php` |
 | `tbl_sessions` | Excluida de dumps de deploy |
 
 ---
@@ -212,23 +226,31 @@ Claude Code **puede** correr comandos SQL contra la base local de Laragon para:
 
 ### 7.1 Estructura de tests
 
+Estado real (no hay carpeta `tests/Integration/` todavía — es aspiracional,
+crearla si se agregan tests de ese tipo):
+
 ```
 tests/
 ├── Unit/
-│   ├── StockTest.php          # Lógica reserva/confirmación/liberación
-│   ├── CheckoutTest.php       # Validaciones del proceso de compra
-│   └── ZipnovaTest.php        # Cotización de envío
-├── Integration/
-│   ├── MercadoPagoWebhookTest.php  # Ciclo completo webhook MP
-│   └── CheckoutFlowTest.php        # Flujo end-to-end checkout
-└── bootstrap.php
+│   ├── AdminAuthRedirectTest.php
+│   ├── CheckEmailAccountStatusTest.php
+│   ├── DbConnectionTest.php
+│   ├── LoginOtpTest.php
+│   ├── OrderEmailsTest.php
+│   ├── SessionCookiePathTest.php
+│   └── SessionCookieSecureTest.php
+└── bootstrap.php   # requiere config.php + src/php/db.php — conecta a la DB local real
 ```
+
+No existen todavía `StockTest.php`, `MercadoPagoWebhookTest.php` ni
+`CheckoutFlowTest.php` — son la cobertura de alta prioridad pendiente
+(ver 7.2), no código ya escrito.
 
 ### 7.2 Prioridad de cobertura
 
 **Alta prioridad (nunca mergear sin tests verdes):**
-1. Lógica de stock: reserva al crear pedido, decremento solo en webhook aprobado, liberación en rechazo o expiración 30min
-2. Webhook de Mercado Pago: idempotencia, firma, transición de estados
+1. Lógica de stock: reserva al crear pedido, decremento solo en webhook aprobado, liberación en rechazo o expiración 30min (`src/php/stock_reservation.php`)
+2. Webhook de Mercado Pago: idempotencia, transición de estados (`src/php/mp_sync.php`) — todavía sin validación de firma `x-signature`, ver 8.3
 3. Cotización Zipnova: request/response, manejo de errores
 4. Flujo de checkout: validaciones, creación de pedido, redirección MP
 
@@ -283,11 +305,21 @@ Si se modifica cualquier parte de este flujo, correr `StockTest.php` antes de co
 
 ### 8.3 Webhook de Mercado Pago
 
-Archivo: `checkout/mp_sync.php`
+Archivos: `webhooks/mp-notification.php` (endpoint HTTP, solo parsea y extrae
+`payment_id`) + `src/php/mp_sync.php` (lógica real, función
+`mp_mercadopago_sync_payment()`).
 
-- Siempre validar firma del webhook
-- Lógica idempotente: si el pedido ya está en el estado destino, no hacer nada
+- No valida el header `x-signature` que MP envía (pendiente de implementar).
+  La mitigación real hoy es que **siempre vuelve a consultar** `GET
+  /v1/payments/{id}` contra la API de MP con el access token propio y solo
+  actúa según esa respuesta — nunca confía en el `status` del body del
+  webhook.
+- Lógica idempotente: si el pedido ya está en el estado destino, no hace nada
+  (`mp_sync_transition_allowed()` + comparación de estado anterior/nuevo).
 - Nunca decrementar stock aquí Y en `process.php` — solo en el webhook
+  (`stock_confirm_order_reservation()` en `src/php/stock_reservation.php`).
+- Para probar el endpoint localmente sin credenciales reales de MP: `php
+  scripts/test_webhook_mp.php <id_orden>`.
 
 ### 8.4 Archivos de configuración
 
@@ -371,7 +403,7 @@ especiales) documentado en `deploy/README.md`.
 | Ejecutar `deploy/deploy.php` | Afecta producción directamente |
 | Hacer DELETE masivo en cualquier tabla | Irreversible |
 | Modificar `.gitignore` | Puede exponer configs sensibles |
-| Cambiar estructura de `tbl_pedidos` o `tbl_skus` | Requiere migración coordinada |
+| Cambiar estructura de `tbl_ordenes` o `tbl_skus` | Requiere migración coordinada |
 | Instalar dependencias nuevas (composer, npm) | Gonzalo debe evaluar antes |
 
 ---

@@ -99,7 +99,7 @@ function admin_csrf_field(): string
 
 function admin_estados_venta_confirmada(): array
 {
-    return ['confirmado', 'en_preparacion', 'preparando_envio', 'enviado', 'entregado'];
+    return ['confirmado', 'enviado', 'entregado'];
 }
 
 function estado_pedido_badge(string $estado): string
@@ -107,8 +107,6 @@ function estado_pedido_badge(string $estado): string
     $map = [
         'pendiente' => 'pendiente',
         'confirmado' => 'confirmado',
-        'en_preparacion' => 'en_preparacion',
-        'preparando_envio' => 'preparando_envio',
         'enviado' => 'enviado',
         'entregado' => 'entregado',
         'cancelado' => 'cancelado',
@@ -117,8 +115,6 @@ function estado_pedido_badge(string $estado): string
     $labels = [
         'pendiente' => 'Pendiente',
         'confirmado' => 'Confirmado',
-        'en_preparacion' => 'En preparación',
-        'preparando_envio' => 'Preparando envío',
         'enviado' => 'Enviado',
         'entregado' => 'Entregado',
         'cancelado' => 'Cancelado',

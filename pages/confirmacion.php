@@ -30,7 +30,6 @@ if (!$order) {
 $estadoLabels = [
     'pendiente' => 'Pendiente de pago',
     'confirmado' => 'Confirmado',
-    'en_preparacion' => 'En preparación',
     'enviado' => 'Enviado',
     'entregado' => 'Entregado',
     'cancelado' => 'Cancelado',

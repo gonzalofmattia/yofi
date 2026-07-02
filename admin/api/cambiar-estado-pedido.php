@@ -51,17 +51,27 @@ if ($estadoNuevo !== $estadoAnterior) {
 
         $clienteEmail = (string)($row['email'] ?? '');
         if ($clienteEmail !== '') {
+            $itemsDecoded = json_decode((string)($row['items'] ?? '[]'), true);
             $orderData = [
                 'numero_orden' => (string)($row['numero_orden'] ?? ('ORD-' . $id_orden)),
                 'nombre' => (string)($row['nombre'] ?? ''),
                 'apellido' => (string)($row['apellido'] ?? ''),
                 'total' => (float)($row['total'] ?? 0),
+                'id_orden' => $id_orden,
+                'subtotal' => (float)($row['subtotal'] ?? 0),
+                'envio' => (float)($row['envio'] ?? 0),
+                'items' => is_array($itemsDecoded) ? $itemsDecoded : [],
+                'direccion' => (string)($row['direccion'] ?? ''),
+                'ciudad' => (string)($row['ciudad'] ?? ''),
+                'provincia' => (string)($row['provincia'] ?? ''),
+                'codigo_postal' => (string)($row['codigo_postal'] ?? ''),
+                'tracking_number' => (string)($row['tracking_number'] ?? ''),
+                'shipping_carrier' => (string)($row['shipping_carrier'] ?? ''),
+                'shipping_eta' => (string)($row['shipping_eta'] ?? ''),
             ];
 
             $titulos = [
                 'confirmado' => 'Tu pedido ha sido confirmado',
-                'en_preparacion' => 'Tu pedido está siendo preparado',
-                'preparando_envio' => 'Tu pedido está siendo preparado',
                 'enviado' => '¡Tu pedido ha sido enviado!',
                 'entregado' => 'Tu pedido ha sido entregado',
                 'cancelado' => 'Tu pedido ha sido cancelado',
