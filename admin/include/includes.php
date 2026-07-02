@@ -62,3 +62,4 @@ $HttpVars = new varFunctions();
 $HttpVars->Inicializar($_POST, $_GET, $_SESSION);
 
 require_once __DIR__ . '/funciones.php';
+require_once __DIR__ . '/auth_redirect.php';

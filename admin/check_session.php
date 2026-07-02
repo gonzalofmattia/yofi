@@ -50,8 +50,7 @@ if (isset($_SESSION['admin_login_time']) && (time() - $_SESSION['admin_login_tim
     // Sesión expirada
     logSuspiciousAdminActivity('Session expired');
     adminLogout();
-    header('Location: index.php?error=session_expired');
-    exit();
+    adminLoginRedirect('session_expired');
 }
 
 // Verificar si la IP ha cambiado (protección contra session hijacking)
@@ -59,8 +58,7 @@ if (isset($_SESSION['admin_ip']) && $_SESSION['admin_ip'] !== $_SERVER['REMOTE_A
     // IP cambiada, posible session hijacking
     logSuspiciousAdminActivity('IP address changed - possible session hijacking');
     adminLogout();
-    header('Location: index.php?error=unauthorized');
-    exit();
+    adminLoginRedirect('unauthorized');
 }
 
 // Renovar tiempo de sesión
@@ -96,7 +94,6 @@ if (!$admin_info) {
     // Usuario no existe o no está activo
     logSuspiciousAdminActivity('User account not found or inactive');
     adminLogout();
-    header('Location: index.php?error=unauthorized');
-    exit();
+    adminLoginRedirect('unauthorized');
 }
 ?>
