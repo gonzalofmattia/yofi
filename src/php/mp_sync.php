@@ -124,6 +124,22 @@ function mp_sync_deduct_sku_stock(PDO $pdo, array $orderRow): void
 
 /**
  * Descarga el pago en MP, actualiza tablas y envía mail si cambió el estado.
+ *
+ * Confirmación automática pendiente -> confirmado (ya implementada):
+ * cuando MP informa un pago con status 'approved'/'authorized',
+ * mp_sync_map_status() lo traduce a 'confirmado' y, si la transición está
+ * permitida (mp_sync_transition_allowed()) y el estado realmente cambió
+ * (evita reprocesar notificaciones repetidas), esta función actualiza
+ * tbl_ordenes, confirma la reserva de stock (mp_sync_confirm_sku_stock) y
+ * dispara los mails de cambio de estado al cliente y de pago acreditado al
+ * admin. No hace falta agregar nada nuevo para esto.
+ *
+ * Importante: esta función NO confía en el body del webhook para decidir el
+ * estado del pago — siempre vuelve a consultar GET /v1/payments/{id} contra
+ * la API de MP con el access_token propio y solo actúa según esa respuesta.
+ * Esa doble verificación es la mitigación real contra payloads falsificados
+ * (no hay validación del header x-signature que MP sí envía; queda pendiente
+ * como posible mejora de hardening, fuera del alcance de esta tarea).
  */
 function mp_mercadopago_sync_payment(PDO $pdo, string $paymentId): void
 {
