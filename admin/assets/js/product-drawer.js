@@ -51,6 +51,7 @@ window.YofiProductDrawer = (function () {
         form.addEventListener('submit', function (e) {
             e.preventDefault();
             var fd = new FormData(form);
+            if (saveBtn && window.YofiAdmin) window.YofiAdmin.setButtonLoading(saveBtn, true, 'Guardando...');
             fetch(form.action, {
                 method: 'POST',
                 body: fd,
@@ -65,6 +66,7 @@ window.YofiProductDrawer = (function () {
             })
             .then(function (data) {
                 if (data.success) {
+                    if (saveBtn && window.YofiAdmin) window.YofiAdmin.setButtonLoading(saveBtn, false);
                     if (data.id_prod && !currentId) {
                         loadEdit(data.id_prod);
                     } else {
@@ -72,10 +74,12 @@ window.YofiProductDrawer = (function () {
                         location.reload();
                     }
                 } else {
+                    if (saveBtn && window.YofiAdmin) window.YofiAdmin.setButtonLoading(saveBtn, false);
                     alert(data.error || 'Error al guardar');
                 }
             })
             .catch(function () {
+                if (saveBtn && window.YofiAdmin) window.YofiAdmin.setButtonLoading(saveBtn, false);
                 alert('Error al guardar el producto');
             });
         });

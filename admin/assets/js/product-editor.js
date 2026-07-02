@@ -39,11 +39,13 @@ window.YofiProductEditor = (function () {
             btn.addEventListener('click', function () {
                 var idColor = parseInt(btn.dataset.idColor, 10);
                 var panel = btn.closest('.color-panel');
+                window.YofiAdmin.setButtonLoading(btn, true, 'Guardando...');
                 postJson(window.YOFI_ADMIN.basePath + '/admin/api/guardar-stock-color.php', {
                     id_prod: idProd,
                     id_color: idColor,
                     stocks: collectStocks(panel)
                 }).then(function (data) {
+                    window.YofiAdmin.setButtonLoading(btn, false);
                     if (data.success) {
                         btn.textContent = 'Guardado ✓';
                         setTimeout(function () { btn.textContent = 'Guardar stock'; }, 2000);
@@ -59,6 +61,7 @@ window.YofiProductEditor = (function () {
         root.querySelectorAll('.btn-eliminar-imagen').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 if (!confirm('¿Eliminar esta imagen?')) return;
+                window.YofiAdmin.setButtonLoading(btn, true, 'Eliminando...');
                 postJson(window.YOFI_ADMIN.basePath + '/admin/api/eliminar-imagen-producto.php', {
                     id_imagen: parseInt(btn.dataset.idImagen, 10),
                     id_prod: idProd
@@ -70,6 +73,7 @@ window.YofiProductEditor = (function () {
                             location.reload();
                         }
                     } else {
+                        window.YofiAdmin.setButtonLoading(btn, false);
                         alert(data.error || 'No se pudo eliminar');
                     }
                 });
@@ -78,6 +82,7 @@ window.YofiProductEditor = (function () {
 
         root.querySelectorAll('.btn-principal').forEach(function (btn) {
             btn.addEventListener('click', function () {
+                window.YofiAdmin.setButtonLoading(btn, true, 'Actualizando...');
                 postJson(window.YOFI_ADMIN.basePath + '/admin/api/marcar-imagen-principal.php', {
                     id_imagen: parseInt(btn.dataset.idImagen, 10),
                     id_prod: idProd
@@ -88,6 +93,8 @@ window.YofiProductEditor = (function () {
                         } else {
                             location.reload();
                         }
+                    } else {
+                        window.YofiAdmin.setButtonLoading(btn, false);
                     }
                 });
             });
@@ -114,12 +121,14 @@ window.YofiProductEditor = (function () {
                 alert('Seleccioná un color');
                 return;
             }
+            window.YofiAdmin.setButtonLoading(saveBtn, true, 'Guardando...');
             postJson(window.YOFI_ADMIN.basePath + '/admin/api/guardar-stock-color.php', {
                 id_prod: idProd,
                 id_color: idColor,
                 stocks: collectStocks(form)
             }).then(function (data) {
                 if (!data.success) {
+                    window.YofiAdmin.setButtonLoading(saveBtn, false);
                     alert(data.error || 'Error al guardar stock');
                     return;
                 }

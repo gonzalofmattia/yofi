@@ -1,3 +1,29 @@
+window.YofiAdmin = window.YofiAdmin || {};
+
+/**
+ * Pone/saca un botón en estado "cargando" (deshabilitado + spinner + texto),
+ * para que una acción que pega al servidor no quede sin feedback visual.
+ * Guarda el HTML original en un data-attribute para poder restaurarlo.
+ */
+window.YofiAdmin.setButtonLoading = function (btn, loading, loadingText) {
+    if (!btn) return;
+    if (loading) {
+        if (btn.dataset.loading === '1') return;
+        btn.dataset.loading = '1';
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> '
+            + (loadingText || 'Actualizando...');
+    } else {
+        delete btn.dataset.loading;
+        btn.disabled = false;
+        if (btn.dataset.originalHtml !== undefined) {
+            btn.innerHTML = btn.dataset.originalHtml;
+            delete btn.dataset.originalHtml;
+        }
+    }
+};
+
 (function () {
     var toggle = document.getElementById('adminSidebarToggle');
     var sidebar = document.getElementById('adminSidebar');
@@ -28,6 +54,7 @@
 
         var body = {};
         body[idKey] = id;
+        input.disabled = true;
 
         fetch(endpoint, {
             method: 'POST',
@@ -47,6 +74,9 @@
             .catch(function () {
                 input.checked = !input.checked;
                 alert('Error de conexión');
+            })
+            .finally(function () {
+                input.disabled = false;
             });
     });
 })();
