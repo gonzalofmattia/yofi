@@ -8,7 +8,7 @@ $security = new SecurityManager($con);
 
 if ($security->isSessionValid()) {
     ob_end_clean();
-    header('Location: dashboard.php');
+    header('Location: ' . admin_safe_redirect_target($_GET['redirect'] ?? null));
     exit();
 }
 
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 session_commit();
             }
             ob_end_clean();
-            header('Location: dashboard.php');
+            header('Location: ' . admin_safe_redirect_target($_POST['redirect'] ?? null));
             exit();
         }
         $error_message = $auth_result['message'] ?? 'Credenciales inválidas';
@@ -50,6 +50,8 @@ if (isset($_GET['error'])) {
             break;
     }
 }
+
+$redirectParam = (string) ($_GET['redirect'] ?? $_POST['redirect'] ?? '');
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -122,6 +124,9 @@ if (isset($_GET['error'])) {
                         <div class="alert alert-success"><?= htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8') ?></div>
                     <?php endif; ?>
                     <form method="POST" action="index.php">
+                        <?php if ($redirectParam !== ''): ?>
+                        <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirectParam, ENT_QUOTES, 'UTF-8') ?>">
+                        <?php endif; ?>
                         <div class="mb-3">
                             <label for="usuario" class="form-label">Usuario</label>
                             <input type="text" class="form-control" id="usuario" name="usuario" required autofocus>

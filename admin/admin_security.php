@@ -110,9 +110,8 @@ function requireAdminAuth() {
             session_destroy();
         }
         
-        // Redirigir al login
-        header('Location: index.php?error=unauthorized');
-        exit();
+        // Redirigir al login (URL absoluta, preservando a dónde quería ir)
+        adminLoginRedirect('unauthorized');
     }
 }
 
