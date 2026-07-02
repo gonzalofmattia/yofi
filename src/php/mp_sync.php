@@ -363,19 +363,29 @@ function mp_mercadopago_sync_payment(PDO $pdo, string $paymentId): void
 
         $clienteEmail = (string)($orderRow['email'] ?? '');
         if (!empty($clienteEmail) && function_exists('generateEstadoChangeEmail') && function_exists('sendEmail')) {
+            $itemsDecoded = json_decode((string)($orderRow['items'] ?? '[]'), true);
             $orderData = [
                 'numero_orden' => (string)($orderRow['numero_orden'] ?? ('ORD-' . $orderId)),
                 'nombre' => (string)($orderRow['nombre'] ?? ''),
                 'apellido' => (string)($orderRow['apellido'] ?? ''),
                 'total' => (float)($orderRow['total'] ?? 0),
+                'id_orden' => $orderId,
+                'subtotal' => (float)($orderRow['subtotal'] ?? 0),
+                'envio' => (float)($orderRow['envio'] ?? 0),
+                'items' => is_array($itemsDecoded) ? $itemsDecoded : [],
+                'direccion' => (string)($orderRow['direccion'] ?? ''),
+                'ciudad' => (string)($orderRow['ciudad'] ?? ''),
+                'provincia' => (string)($orderRow['provincia'] ?? ''),
+                'codigo_postal' => (string)($orderRow['codigo_postal'] ?? ''),
             ];
 
             $motivoCancelacion = $estadoNuevo === 'cancelado' ? ($statusDetail !== '' ? $statusDetail : 'Cancelado por MercadoPago') : null;
             $emailBody = generateEstadoChangeEmail($orderData, $estadoNuevo, $estadoAnterior, $statusDetail, null, $motivoCancelacion);
 
+            // MP solo produce pendiente/confirmado/cancelado; enviado/entregado quedan
+            // acá por si alguna vez se llegara a usar esta misma función desde otro flujo.
             $titulos = [
                 'confirmado' => 'Tu pedido ha sido confirmado',
-                'en_preparacion' => 'Tu pedido está siendo preparado',
                 'enviado' => '¡Tu pedido ha sido enviado!',
                 'entregado' => 'Tu pedido ha sido entregado',
                 'cancelado' => 'Tu pedido ha sido cancelado',

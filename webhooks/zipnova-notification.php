@@ -160,6 +160,48 @@ try {
         $tracking !== '' ? $tracking : null,
     ]);
 
+    // Zipnova es quien realmente marca 'enviado'/'entregado' en producción (no un admin
+    // a mano), así que el mail de cambio de estado se dispara también desde acá — mismo
+    // patrón que admin/api/cambiar-estado-pedido.php y src/php/mp_sync.php.
+    if ($estadoNuevo !== null && $estadoNuevo !== $estadoAnterior) {
+        try {
+            require_once __DIR__ . '/../src/php/order_emails.php';
+
+            $clienteEmail = (string)($orden['email'] ?? '');
+            if ($clienteEmail !== '') {
+                $itemsDecoded = json_decode((string)($orden['items'] ?? '[]'), true);
+                $orderData = [
+                    'numero_orden' => (string)($orden['numero_orden'] ?? ('ORD-' . $orderId)),
+                    'nombre' => (string)($orden['nombre'] ?? ''),
+                    'apellido' => (string)($orden['apellido'] ?? ''),
+                    'total' => (float)($orden['total'] ?? 0),
+                    'id_orden' => $orderId,
+                    'subtotal' => (float)($orden['subtotal'] ?? 0),
+                    'envio' => (float)($orden['envio'] ?? 0),
+                    'items' => is_array($itemsDecoded) ? $itemsDecoded : [],
+                    'direccion' => (string)($orden['direccion'] ?? ''),
+                    'ciudad' => (string)($orden['ciudad'] ?? ''),
+                    'provincia' => (string)($orden['provincia'] ?? ''),
+                    'codigo_postal' => (string)($orden['codigo_postal'] ?? ''),
+                    'tracking_number' => $tracking !== '' ? $tracking : (string)($orden['tracking_number'] ?? ''),
+                    'shipping_carrier' => (string)($orden['shipping_carrier'] ?? ''),
+                    'shipping_eta' => (string)($orden['shipping_eta'] ?? ''),
+                ];
+
+                $titulos = [
+                    'enviado' => '¡Tu pedido ha sido enviado!',
+                    'entregado' => 'Tu pedido ha sido entregado',
+                ];
+                $emailSubject = ($titulos[$estadoNuevo] ?? 'Actualización de tu pedido') . ' - Pedido #' . $orderData['numero_orden'] . ' - Yofi';
+                $emailBody = generateEstadoChangeEmail($orderData, $estadoNuevo, $estadoAnterior);
+
+                sendEmail($clienteEmail, $emailSubject, $emailBody, true);
+            }
+        } catch (Throwable $e) {
+            zipnova_webhook_log('Error al enviar email: ' . $e->getMessage(), 'ERROR');
+        }
+    }
+
     zipnova_webhook_log("OK order_id={$orderId} {$estadoAnterior}->{$estadoNuevo} tracking={$tracking}");
 } catch (Throwable $e) {
     zipnova_webhook_log('Excepción: ' . $e->getMessage(), 'ERROR');
