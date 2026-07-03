@@ -48,7 +48,15 @@ define('ZIPNOVA_BASE_URL', 'https://api.zipnova.com.ar/v2');
 define('ZIPNOVA_API_BASE_URL', ZIPNOVA_BASE_URL);
 define('ZIPNOVA_QUOTE_ENDPOINT', '/shipments/quote');
 if (!defined('ZIPNOVA_ORIGIN_ID')) {
-    define('ZIPNOVA_ORIGIN_ID', 378086);
+    // OJO: no hardcodear acá un ID "de ejemplo" — 378086 (el valor histórico de
+    // este archivo desde el primer commit) resultó ser el warehouse de OTRA
+    // cuenta de Zipnova ("limpiaoeste"), no de Yofi. La cuenta real de Yofi no
+    // tiene ningún warehouse registrado todavía (GET /warehouses devuelve
+    // data:[] vacío) — hay que crear uno en el panel de Zipnova y poner ese ID
+    // acá o en ZIPNOVA_ORIGIN_ID (env) / config/zipnova.local.php. Mientras no
+    // esté configurado, fetchRates() corta con "ZIPNOVA_ORIGIN_ID no
+    // configurado" en vez de cotizar contra un depósito ajeno.
+    define('ZIPNOVA_ORIGIN_ID', (int)(getenv('ZIPNOVA_ORIGIN_ID') ?: 0));
 }
 if (!defined('ZIPNOVA_CLASSIFICATION_ID')) {
     define('ZIPNOVA_CLASSIFICATION_ID', 1);
