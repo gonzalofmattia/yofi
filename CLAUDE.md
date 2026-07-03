@@ -340,6 +340,9 @@ Estos archivos están en `.gitignore`. Si Claude Code necesita ver su contenido,
 - Credenciales en: `config/mercadopago.local.php` / `config/mercadopago.production.php`
 - Nunca loguear `access_token` ni `client_secret`
 - Sandbox activo en dev, producción requiere credenciales de Aye
+- ngrok está instalado localmente (Gonzalo) para exponer el webhook en pruebas
+  de sandbox — MP no puede pegarle a `localhost`, hace falta la URL pública de
+  ngrok para que `mp-notification.php` reciba las notificaciones
 
 ### 9.2 Zipnova
 

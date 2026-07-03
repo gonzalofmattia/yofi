@@ -774,3 +774,29 @@ function zipnova_aggregate_package(PDO $pdo, array $items): array
     $service = new ZipnovaService($pdo);
     return $service->resolvePackageFromItems($items);
 }
+
+/**
+ * Opción de envío "Retiro en local" (costo 0), controlada desde
+ * admin/configuracion_envios.php vía tbl_shipping_config.
+ *
+ * @return array{carrier:string,service:string,price:float,eta:string,code:string,logistic_type:string,carrier_id:int}|null
+ */
+function shipping_pickup_option(bool $enabled, string $label, string $address): ?array
+{
+    if (!$enabled) {
+        return null;
+    }
+
+    $label = trim($label) !== '' ? trim($label) : 'Retiro en local';
+    $address = trim($address);
+
+    return [
+        'carrier' => $label,
+        'service' => $label,
+        'price' => 0.0,
+        'eta' => $address !== '' ? $address : 'Retiro en el local',
+        'code' => 'pickup',
+        'logistic_type' => 'pickup',
+        'carrier_id' => 0,
+    ];
+}

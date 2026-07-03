@@ -8,6 +8,7 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 require_once __DIR__ . '/../../../config.php';
 require_once __DIR__ . '/../../../src/php/auth.php';
 require_once __DIR__ . '/../../../src/php/shipping.php';
+require_once __DIR__ . '/../../../src/php/content.php';
 
 function json_response(array $payload, int $statusCode = 200): void
 {
@@ -54,18 +55,31 @@ try {
     $declaredValue = isset($data['declared_value']) ? (float)$data['declared_value'] : 1000.0;
 
     $pdo = db_ro();
-    $package = zipnova_aggregate_package($pdo, $items);
-    $service = new ZipnovaService($pdo);
-    $opciones = $service->cotizar(
-        $cpDigits,
-        (float)$package['weight'],
-        (float)$package['height'],
-        (float)$package['width'],
-        (float)$package['depth'],
-        $declaredValue,
-        $ciudad,
-        $provincia
+    $opciones = [];
+
+    if (shipping_config_get('zipnova_enabled', '1') === '1') {
+        $package = zipnova_aggregate_package($pdo, $items);
+        $service = new ZipnovaService($pdo);
+        $opciones = $service->cotizar(
+            $cpDigits,
+            (float)$package['weight'],
+            (float)$package['height'],
+            (float)$package['width'],
+            (float)$package['depth'],
+            $declaredValue,
+            $ciudad,
+            $provincia
+        );
+    }
+
+    $pickup = shipping_pickup_option(
+        shipping_config_get('pickup_enabled', '0') === '1',
+        shipping_config_get('pickup_label', 'Retiro en local'),
+        shipping_config_get('pickup_address', '')
     );
+    if ($pickup !== null) {
+        $opciones[] = $pickup;
+    }
 
     json_response([
         'success' => true,

@@ -140,7 +140,7 @@ include __DIR__ . '/../header.php';
             </div>
         </div>
 
-        <?php if (empty($orden['zipnova_shipment_id'])): ?>
+        <?php if (empty($orden['zipnova_shipment_id']) && $orden['shipping_method_code'] !== 'pickup'): ?>
         <div class="card shadow-sm border-0">
             <div class="card-body">
                 <button type="button" class="btn btn-yofi w-100" id="btnZipnova">Generar etiqueta Zipnova</button>
