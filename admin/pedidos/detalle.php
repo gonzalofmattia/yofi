@@ -163,30 +163,43 @@ async function postJson(url, body) {
     return res.json();
 }
 
-document.getElementById('btnGuardarTracking').addEventListener('click', async () => {
+const btnTracking = document.getElementById('btnGuardarTracking');
+btnTracking.addEventListener('click', async () => {
+    window.YofiAdmin.setButtonLoading(btnTracking, true, 'Guardando...');
     const data = await postJson('<?= app_path('admin/api/guardar-tracking.php') ?>', {
         id_orden: orderId,
         tracking_number: document.getElementById('trackingNumber').value
     });
+    window.YofiAdmin.setButtonLoading(btnTracking, false);
     alert(data.success ? 'Tracking guardado' : (data.error || 'Error'));
 });
 
-document.getElementById('btnCambiarEstado').addEventListener('click', async () => {
+const btnEstado = document.getElementById('btnCambiarEstado');
+btnEstado.addEventListener('click', async () => {
+    window.YofiAdmin.setButtonLoading(btnEstado, true, 'Actualizando...');
     const data = await postJson('<?= app_path('admin/api/cambiar-estado-pedido.php') ?>', {
         id_orden: orderId,
         estado: document.getElementById('estadoOrden').value
     });
-    if (data.success) location.reload();
-    else alert(data.error || 'Error');
+    if (data.success) {
+        location.reload();
+    } else {
+        window.YofiAdmin.setButtonLoading(btnEstado, false);
+        alert(data.error || 'Error');
+    }
 });
 
 const btnZip = document.getElementById('btnZipnova');
 if (btnZip) {
     btnZip.addEventListener('click', async () => {
-        btnZip.disabled = true;
+        window.YofiAdmin.setButtonLoading(btnZip, true, 'Generando etiqueta...');
         const data = await postJson('<?= app_path('admin/api/crear-envio-zipnova.php') ?>', {order_id: orderId});
-        if (data.success) location.reload();
-        else { alert(data.error || 'Error al crear envío'); btnZip.disabled = false; }
+        if (data.success) {
+            location.reload();
+        } else {
+            window.YofiAdmin.setButtonLoading(btnZip, false);
+            alert(data.error || 'Error al crear envío');
+        }
     });
 }
 </script>
