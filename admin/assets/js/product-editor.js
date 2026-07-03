@@ -2,6 +2,11 @@
  * Inicializa la gestión de colores/stock/imágenes dentro del editor de producto.
  */
 window.YofiProductEditor = (function () {
+    function apiUrl(path) {
+        var base = (window.YOFI_ADMIN && window.YOFI_ADMIN.basePath) || '';
+        return base.replace(/\/+$/, '') + '/' + path.replace(/^\/+/, '');
+    }
+
     function postJson(url, body) {
         return fetch(url, {
             method: 'POST',
@@ -40,7 +45,7 @@ window.YofiProductEditor = (function () {
                 var idColor = parseInt(btn.dataset.idColor, 10);
                 var panel = btn.closest('.color-panel');
                 window.YofiAdmin.setButtonLoading(btn, true, 'Guardando...');
-                postJson(window.YOFI_ADMIN.basePath + '/admin/api/guardar-stock-color.php', {
+                postJson(apiUrl('admin/api/guardar-stock-color.php'), {
                     id_prod: idProd,
                     id_color: idColor,
                     stocks: collectStocks(panel)
@@ -62,7 +67,7 @@ window.YofiProductEditor = (function () {
             btn.addEventListener('click', function () {
                 if (!confirm('¿Eliminar esta imagen?')) return;
                 window.YofiAdmin.setButtonLoading(btn, true, 'Eliminando...');
-                postJson(window.YOFI_ADMIN.basePath + '/admin/api/eliminar-imagen-producto.php', {
+                postJson(apiUrl('admin/api/eliminar-imagen-producto.php'), {
                     id_imagen: parseInt(btn.dataset.idImagen, 10),
                     id_prod: idProd
                 }).then(function (data) {
@@ -83,7 +88,7 @@ window.YofiProductEditor = (function () {
         root.querySelectorAll('.btn-principal').forEach(function (btn) {
             btn.addEventListener('click', function () {
                 window.YofiAdmin.setButtonLoading(btn, true, 'Actualizando...');
-                postJson(window.YOFI_ADMIN.basePath + '/admin/api/marcar-imagen-principal.php', {
+                postJson(apiUrl('admin/api/marcar-imagen-principal.php'), {
                     id_imagen: parseInt(btn.dataset.idImagen, 10),
                     id_prod: idProd
                 }).then(function (data) {
@@ -122,7 +127,7 @@ window.YofiProductEditor = (function () {
                 return;
             }
             window.YofiAdmin.setButtonLoading(saveBtn, true, 'Guardando...');
-            postJson(window.YOFI_ADMIN.basePath + '/admin/api/guardar-stock-color.php', {
+            postJson(apiUrl('admin/api/guardar-stock-color.php'), {
                 id_prod: idProd,
                 id_color: idColor,
                 stocks: collectStocks(form)
