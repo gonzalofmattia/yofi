@@ -9,5 +9,6 @@
 define('ZIPNOVA_ACCOUNT_ID', 'TU_ACCOUNT_ID');
 define('ZIPNOVA_KEY', 'TU_API_KEY');
 define('ZIPNOVA_SECRET', 'TU_SECRET');
-define('ZIPNOVA_CP_ORIGEN', '1706');
+define('ZIPNOVA_CP_ORIGEN', 'TU_CP_ORIGEN');
+define('ZIPNOVA_ORIGIN_ID', 0); // ID de la dirección de origen — ver GET /v2/addresses en el panel de Zipnova
 define('ZIPNOVA_DEBUG', false);

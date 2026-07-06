@@ -455,7 +455,7 @@ class ZipnovaService
     }
 
     /**
-     * Convierte medidas internas (kg, cm) al formato V2 (gramos, mm).
+     * Convierte medidas internas (kg, cm) al formato V2 (gramos, cm).
      *
      * @return array<int, array<string, int|string>>
      */
@@ -469,9 +469,9 @@ class ZipnovaService
     ): array {
         return [[
             'weight' => (int)round($peso_kg * 1000),
-            'height' => (int)round($alto_cm * 10),
-            'width' => (int)round($ancho_cm * 10),
-            'length' => (int)round($prof_cm * 10),
+            'height' => (int)round($alto_cm),
+            'width' => (int)round($ancho_cm),
+            'length' => (int)round($prof_cm),
             'description_1' => $description,
             'classification_id' => $classification_id ?? $this->classificationId,
         ]];
