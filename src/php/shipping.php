@@ -101,7 +101,10 @@ class ZipnovaService
      * (el checkout muestra ambos grupos en pestañas separadas).
      *
      * Por grupo:
-     * 1) Deduplica por (carrier + eta), quedándose con la de menor precio.
+     * 1) Deduplica quedándose con la de menor precio — por (carrier + eta) en
+     *    domicilio, y solo por carrier en punto de retiro (el punto físico no
+     *    cambia según la tarifa/plazo, así que dos tarifas del mismo carrier
+     *    no son opciones distintas para el comprador).
      * 2) Ordena por precio ascendente.
      * 3) Limita a self::MAX_SHIPPING_OPTIONS.
      *
@@ -133,7 +136,10 @@ class ZipnovaService
 
         $curadas = array_merge(
             $this->deduplicarOrdenarLimitar($domicilio),
-            $this->deduplicarOrdenarLimitar($puntoRetiro)
+            // Punto de retiro: el punto físico no cambia según la tarifa/plazo,
+            // así que deduplicamos solo por carrier (ignorando eta) para no
+            // mostrar dos veces "Correo Argentino" con distinto plazo.
+            $this->deduplicarOrdenarLimitar($puntoRetiro, true)
         );
 
         if (defined('ZIPNOVA_DEBUG') && ZIPNOVA_DEBUG) {
@@ -148,19 +154,27 @@ class ZipnovaService
     }
 
     /**
-     * Deduplica por (carrier + eta) quedándose con el precio más bajo, ordena
-     * ascendente por precio y limita a self::MAX_SHIPPING_OPTIONS.
+     * Deduplica quedándose con el precio más bajo, ordena ascendente por
+     * precio y limita a self::MAX_SHIPPING_OPTIONS.
+     *
+     * La clave de dedupe es (carrier + eta) por defecto — dos plazos distintos
+     * del mismo carrier son opciones legítimamente distintas para envío a
+     * domicilio. Con $porCarrierSolamente en true, la clave es solo el
+     * carrier: para punto de retiro el plazo no cambia el punto físico donde
+     * se retira, así que mostrar dos tarifas del mismo carrier es ruido, no
+     * una opción distinta.
      *
      * @param array<int, array<string, mixed>> $options
      * @return array<int, array<string, mixed>>
      */
-    private function deduplicarOrdenarLimitar(array $options): array
+    private function deduplicarOrdenarLimitar(array $options, bool $porCarrierSolamente = false): array
     {
         $masBaratoPorClave = [];
         foreach ($options as $option) {
-            $carrier = mb_strtolower(trim((string)($option['carrier'] ?? '')));
-            $eta = mb_strtolower(trim((string)($option['eta'] ?? '')));
-            $clave = $carrier . '|' . $eta;
+            $clave = mb_strtolower(trim((string)($option['carrier'] ?? '')));
+            if (!$porCarrierSolamente) {
+                $clave .= '|' . mb_strtolower(trim((string)($option['eta'] ?? '')));
+            }
 
             if (!isset($masBaratoPorClave[$clave]) || (float)$option['price'] < (float)$masBaratoPorClave[$clave]['price']) {
                 $masBaratoPorClave[$clave] = $option;

@@ -83,4 +83,37 @@ final class ZipnovaCurarOpcionesTest extends TestCase
         $this->assertSame(2, $codes['pickup_point']);
         $this->assertCount(ZipnovaService::MAX_SHIPPING_OPTIONS + 2, $curadas);
     }
+
+    public function testDeduplicaPuntoRetiroSoloPorCarrierIgnorandoEta(): void
+    {
+        $opciones = [
+            $this->opt('Correo Argentino', '5 a 6 días hábiles', 9770.0, 'pickup_point'),
+            $this->opt('Correo Argentino', '6 a 9 días hábiles', 11908.0, 'pickup_point'),
+            $this->opt('OCA', '6 a 7 días hábiles', 10952.0, 'pickup_point'),
+        ];
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $this->assertCount(2, $curadas);
+        $porCarrier = [];
+        foreach ($curadas as $opcion) {
+            $porCarrier[$opcion['carrier']] = $opcion;
+        }
+        $this->assertSame(9770.0, $porCarrier['Correo Argentino']['price']);
+        $this->assertSame(10952.0, $porCarrier['OCA']['price']);
+    }
+
+    public function testNoAplicaDedupePorSoloCarrierADomicilio(): void
+    {
+        $opciones = [
+            $this->opt('OCA', '3 a 4 días hábiles', 8600.0, 'standard_delivery'),
+            $this->opt('OCA', '6 a 7 días hábiles', 10952.0, 'standard_delivery'),
+        ];
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $this->assertCount(2, $curadas);
+    }
 }
