@@ -95,7 +95,9 @@ class ZipnovaService
 
     /**
      * Curado de opciones antes de mostrarlas al comprador:
-     * 1) Deduplica por (carrier + eta), quedándose con la de menor precio.
+     * 1) Deduplica por (carrier + eta + code), quedándose con la de menor precio.
+     *    Incluir el code (service_type) evita fusionar una opción "a domicilio"
+     *    con una "punto de retiro" del mismo carrier que comparta plazo estimado.
      * 2) Ordena por precio ascendente.
      * 3) Limita a self::MAX_SHIPPING_OPTIONS.
      *
@@ -119,7 +121,8 @@ class ZipnovaService
         foreach ($options as $option) {
             $carrier = mb_strtolower(trim((string)($option['carrier'] ?? '')));
             $eta = mb_strtolower(trim((string)($option['eta'] ?? '')));
-            $clave = $carrier . '|' . $eta;
+            $code = mb_strtolower(trim((string)($option['code'] ?? '')));
+            $clave = $carrier . '|' . $eta . '|' . $code;
 
             if (!isset($masBaratoPorClave[$clave]) || (float)$option['price'] < (float)$masBaratoPorClave[$clave]['price']) {
                 $masBaratoPorClave[$clave] = $option;
@@ -149,6 +152,17 @@ class ZipnovaService
     public function mapRatesFromResponse(array $json): array
     {
         return $this->mapRatesResponse($json);
+    }
+
+    /**
+     * Wrapper público de curarOpciones() para tests (mismo patrón que mapRatesFromResponse()).
+     *
+     * @param array<int, array<string, mixed>> $options
+     * @return array<int, array<string, mixed>>
+     */
+    public function curarOpcionesDesdeArray(array $options): array
+    {
+        return $this->curarOpciones($options);
     }
 
     /**
@@ -552,7 +566,7 @@ class ZipnovaService
     /**
      * @param array<string, mixed> $orden
      * @param array<string, mixed> $shippingMeta
-     * @return array<string, string>
+     * @return array<string, int|string>
      */
     private function buildDestinationPayload(array $orden, array $shippingMeta): array
     {
@@ -560,7 +574,7 @@ class ZipnovaService
         $document = (string)($shippingMeta['document'] ?? $shippingMeta['dni'] ?? '00000000');
         $phone = preg_replace('/\D+/', '', (string)($orden['telefono'] ?? '')) ?? '';
 
-        return [
+        $destination = [
             'name' => trim((string)($orden['nombre'] ?? '') . ' ' . (string)($orden['apellido'] ?? '')),
             'document' => $document,
             'email' => (string)($orden['email'] ?? ''),
@@ -571,6 +585,20 @@ class ZipnovaService
             'state' => (string)($orden['provincia'] ?? ''),
             'zipcode' => preg_replace('/\D/', '', (string)($orden['codigo_postal'] ?? '')) ?? '',
         ];
+
+        // Punto de retiro de transportista (service_type.code === 'pickup_point',
+        // DISTINTO de shipping_pickup_option() / 'pickup' = retiro en local propio).
+        // OJO: el nombre de campo 'pickup_point_id' es una ESTIMACIÓN a partir del
+        // schema de RESPUESTA observado (destination.pickup_point en un envío ya
+        // creado, ver logs/zipnova.log) — no hay forma de confirmar el nombre real
+        // esperado por POST /shipments sin probar contra un sandbox con puntos de
+        // retiro reales. Validar antes de depender de esto en producción.
+        $puntoRetiro = $shippingMeta['pickup_point'] ?? null;
+        if (is_array($puntoRetiro) && (int)($puntoRetiro['point_id'] ?? 0) > 0) {
+            $destination['pickup_point_id'] = (int)$puntoRetiro['point_id'];
+        }
+
+        return $destination;
     }
 
     /**
@@ -718,7 +746,8 @@ class ZipnovaService
      *   eta:string,
      *   code:string,
      *   logistic_type:string,
-     *   carrier_id:int
+     *   carrier_id:int,
+     *   pickup_points?:array<int, array{point_id:int, description:string, address:string, phone:string}>
      * }>
      */
     private function mapRatesResponse(array $json): array
@@ -764,7 +793,7 @@ class ZipnovaService
                 $eta = $this->formatDeliveryEta($rate);
             }
 
-            $options[] = [
+            $option = [
                 'carrier' => $carrierName,
                 'service' => $serviceName,
                 'price' => $price,
@@ -773,9 +802,64 @@ class ZipnovaService
                 'logistic_type' => $logisticType,
                 'carrier_id' => $carrierId,
             ];
+
+            if ($serviceCode === 'pickup_point') {
+                $puntos = $this->mapPickupPoints($rate);
+                if ($puntos === []) {
+                    // Sin puntos físicos disponibles: no ofrecer la opción, dejaría
+                    // al comprador sin forma de cumplir la selección obligatoria.
+                    continue;
+                }
+                $option['pickup_points'] = $puntos;
+            }
+
+            $options[] = $option;
         }
 
         return $options;
+    }
+
+    /**
+     * Extrae y normaliza los puntos físicos de retiro de una rate cuyo
+     * service_type.code sea 'pickup_point'. La API los expone en
+     * $rate['pickup_points'] (confirmado con respuesta real de
+     * /shipments/quote guardada en logs/zipnova.log).
+     *
+     * @param array<string, mixed> $rate
+     * @return array<int, array{point_id:int, description:string, address:string, phone:string}>
+     */
+    private function mapPickupPoints(array $rate): array
+    {
+        $rawPoints = is_array($rate['pickup_points'] ?? null) ? $rate['pickup_points'] : [];
+        $points = [];
+
+        foreach ($rawPoints as $point) {
+            if (!is_array($point)) {
+                continue;
+            }
+            $pointId = (int)($point['point_id'] ?? 0);
+            if ($pointId <= 0) {
+                continue;
+            }
+
+            $location = is_array($point['location'] ?? null) ? $point['location'] : [];
+            $calle = trim((string)($location['street'] ?? '') . ' ' . (string)($location['street_number'] ?? ''));
+            $partes = array_filter([$calle, (string)($location['city'] ?? ''), (string)($location['state'] ?? '')]);
+            $direccion = implode(', ', $partes);
+            $cp = trim((string)($location['zipcode'] ?? ''));
+            if ($cp !== '') {
+                $direccion .= ' (CP ' . $cp . ')';
+            }
+
+            $points[] = [
+                'point_id' => $pointId,
+                'description' => (string)($point['description'] ?? ''),
+                'address' => $direccion,
+                'phone' => (string)($point['phone'] ?? ''),
+            ];
+        }
+
+        return $points;
     }
 
     /**
@@ -857,4 +941,34 @@ function shipping_pickup_option(bool $enabled, string $label, string $address): 
         'logistic_type' => 'pickup',
         'carrier_id' => 0,
     ];
+}
+
+/**
+ * Valida server-side que, si el comprador eligió una opción de envío con
+ * code === 'pickup_point' (punto de retiro de transportista Zipnova —
+ * DISTINTO de 'pickup', que es retiro en el local propio de Yofi), haya
+ * un punto físico elegido y válido en shipping_meta. No confía en que el
+ * frontend ya lo validó.
+ *
+ * @param array<string, mixed>|null $shippingMeta
+ * @return string|null Mensaje de error en español, o null si es válido / no aplica.
+ */
+function validar_punto_retiro_seleccionado(string $shippingMethodCode, ?array $shippingMeta): ?string
+{
+    if ($shippingMethodCode !== 'pickup_point') {
+        return null;
+    }
+
+    $punto = is_array($shippingMeta['pickup_point'] ?? null) ? $shippingMeta['pickup_point'] : null;
+    if ($punto === null) {
+        return 'Por favor, elegí un punto de retiro antes de confirmar el pedido.';
+    }
+
+    $pointId = (int)($punto['point_id'] ?? 0);
+    $descripcion = trim((string)($punto['description'] ?? ''));
+    if ($pointId <= 0 || $descripcion === '') {
+        return 'El punto de retiro seleccionado no es válido. Volvé a elegirlo.';
+    }
+
+    return null;
 }
