@@ -148,6 +148,12 @@ $checkoutBootstrap = [
                             <div class="hidden space-y-2 mt-3" data-shipping-options></div>
                             <p class="hidden text-sm text-accent mt-2" data-shipping-error></p>
                             <p class="hidden text-sm text-earth mt-2" data-shipping-loading>Cotizando envío…</p>
+
+                            <div class="hidden mt-4 rounded-xl border border-cream p-3" data-pickup-point-wrap>
+                                <p class="text-sm font-extrabold text-dark mb-2">Elegí el punto de retiro</p>
+                                <div class="space-y-2" data-pickup-point-options></div>
+                                <p class="hidden text-sm text-accent mt-2" data-pickup-point-error>Elegí un punto de retiro para continuar.</p>
+                            </div>
                         </div>
                     </div>
 

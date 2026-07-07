@@ -9,6 +9,7 @@
     var shippingState = {
         options: [],
         selected: null,
+        selectedPickupPoint: null,
         quoting: false,
         quoted: false,
     };
@@ -147,6 +148,10 @@
             showBanner('Seleccioná una opción de envío', 'warning');
             return false;
         }
+        if (shippingState.selected.code === 'pickup_point' && !shippingState.selectedPickupPoint) {
+            showBanner('Elegí un punto de retiro para continuar.', 'warning');
+            return false;
+        }
         hideBanner();
         return true;
     }
@@ -200,8 +205,13 @@
         var reviewShip = document.querySelector('[data-checkout-review-shipping]');
         if (reviewShip && shippingState.selected) {
             var f = readForm();
+            var puntoHtml = shippingState.selectedPickupPoint
+                ? '<p><strong>Punto de retiro:</strong> ' + escapeHtml(shippingState.selectedPickupPoint.description || '') +
+                    ' — ' + escapeHtml(shippingState.selectedPickupPoint.address || '') + '</p>'
+                : '';
             reviewShip.innerHTML = '<p><strong>Envío:</strong> ' + escapeHtml(shippingState.selected.carrier || shippingState.selected.label) +
                 ' — ' + escapeHtml(shippingState.selected.eta || '') + '</p>' +
+                puntoHtml +
                 '<p><strong>Dirección:</strong> ' + escapeHtml(f.address) + ', ' + escapeHtml(f.city) + ', ' + escapeHtml(f.province) + ' (' + escapeHtml(f.zip) + ')</p>';
         }
     }
@@ -220,6 +230,7 @@
                 placeholder.textContent = 'No hay opciones de envío para este CP.';
             }
             shippingState.selected = null;
+            renderPickupPoints(null);
             updateSummary();
             return;
         }
@@ -236,14 +247,52 @@
         }).join('');
 
         shippingState.selected = opciones[0];
+        renderPickupPoints(shippingState.selected);
         wrap.querySelectorAll('input[name="shipping_option"]').forEach(function (radio) {
             radio.addEventListener('change', function () {
                 var i = parseInt(radio.value, 10);
                 shippingState.selected = opciones[i] || null;
+                renderPickupPoints(shippingState.selected);
                 updateSummary();
             });
         });
         updateSummary();
+    }
+
+    function renderPickupPoints(option) {
+        var wrap = document.querySelector('[data-pickup-point-wrap]');
+        var list = document.querySelector('[data-pickup-point-options]');
+        var errEl = document.querySelector('[data-pickup-point-error]');
+        if (!wrap || !list) return;
+
+        shippingState.selectedPickupPoint = null;
+        if (errEl) errEl.classList.add('hidden');
+
+        var puntos = (option && option.code === 'pickup_point' && Array.isArray(option.pickup_points))
+            ? option.pickup_points : [];
+
+        if (!puntos.length) {
+            wrap.classList.add('hidden');
+            list.innerHTML = '';
+            return;
+        }
+
+        wrap.classList.remove('hidden');
+        list.innerHTML = puntos.map(function (p, idx) {
+            var id = 'pickup-point-' + idx;
+            return '<label class="flex items-start gap-3 p-3 rounded-xl border border-cream cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-cream/40">' +
+                '<input type="radio" name="pickup_point" value="' + idx + '" id="' + id + '" class="mt-1">' +
+                '<span class="flex-1"><span class="font-semibold block">' + escapeHtml(p.description || '') + '</span>' +
+                '<span class="text-sm text-earth">' + escapeHtml(p.address || '') + '</span></span></label>';
+        }).join('');
+
+        list.querySelectorAll('input[name="pickup_point"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                shippingState.selectedPickupPoint = puntos[parseInt(radio.value, 10)] || null;
+                if (errEl) errEl.classList.add('hidden');
+                updateSummary();
+            });
+        });
     }
 
     function requestQuote() {
@@ -331,6 +380,11 @@
                 carrier_id: sel.carrier_id || null,
                 logistic_type: sel.logistic_type || '',
                 service: sel.service || '',
+                pickup_point: (sel.code === 'pickup_point' && shippingState.selectedPickupPoint) ? {
+                    point_id: shippingState.selectedPickupPoint.point_id,
+                    description: shippingState.selectedPickupPoint.description,
+                    address: shippingState.selectedPickupPoint.address,
+                } : null,
             },
         };
     }
