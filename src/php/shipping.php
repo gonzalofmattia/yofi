@@ -7,6 +7,9 @@ require_once __DIR__ . '/db.php';
 
 class ZipnovaService
 {
+    /** Cantidad máxima de opciones de Zipnova mostradas al comprador (sin contar "Retiro en local"). */
+    public const MAX_SHIPPING_OPTIONS = 3;
+
     private int $accountId;
     private string $key;
     private string $secret;
@@ -47,6 +50,12 @@ class ZipnovaService
     }
 
     /**
+     * Cotiza y devuelve las opciones ya curadas: deduplicadas por (transporte + plazo)
+     * quedándose con la de menor precio, ordenadas por precio ascendente y limitadas
+     * a self::MAX_SHIPPING_OPTIONS. "Retiro en local" NO se agrega acá — se resuelve
+     * aparte con shipping_pickup_option() y se agrega siempre al final, sin contar
+     * contra el límite (ver public/api/zipnova/cotizar.php).
+     *
      * @return array<int, array{
      *   carrier:string,
      *   service:string,
@@ -81,7 +90,56 @@ class ZipnovaService
             return [];
         }
 
-        return $this->mapRatesResponse($raw);
+        return $this->curarOpciones($this->mapRatesResponse($raw));
+    }
+
+    /**
+     * Curado de opciones antes de mostrarlas al comprador:
+     * 1) Deduplica por (carrier + eta), quedándose con la de menor precio.
+     * 2) Ordena por precio ascendente.
+     * 3) Limita a self::MAX_SHIPPING_OPTIONS.
+     *
+     * En modo ZIPNOVA_DEBUG loguea el array original y el final en logs/zipnova.log
+     * para poder auditar qué se descartó y por qué.
+     *
+     * @param array<int, array<string, mixed>> $options
+     * @return array<int, array<string, mixed>>
+     */
+    private function curarOpciones(array $options): array
+    {
+        if (defined('ZIPNOVA_DEBUG') && ZIPNOVA_DEBUG) {
+            logZipnova(
+                'CURADO original (' . count($options) . " opciones):\n"
+                . json_encode($options, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
+                'DEBUG'
+            );
+        }
+
+        $masBaratoPorClave = [];
+        foreach ($options as $option) {
+            $carrier = mb_strtolower(trim((string)($option['carrier'] ?? '')));
+            $eta = mb_strtolower(trim((string)($option['eta'] ?? '')));
+            $clave = $carrier . '|' . $eta;
+
+            if (!isset($masBaratoPorClave[$clave]) || (float)$option['price'] < (float)$masBaratoPorClave[$clave]['price']) {
+                $masBaratoPorClave[$clave] = $option;
+            }
+        }
+
+        $deduplicadas = array_values($masBaratoPorClave);
+        usort($deduplicadas, static fn (array $a, array $b): int => $a['price'] <=> $b['price']);
+
+        $curadas = array_slice($deduplicadas, 0, self::MAX_SHIPPING_OPTIONS);
+
+        if (defined('ZIPNOVA_DEBUG') && ZIPNOVA_DEBUG) {
+            logZipnova(
+                'CURADO final (' . count($curadas) . '/' . self::MAX_SHIPPING_OPTIONS . " opciones):\n"
+                . json_encode($curadas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
+                'DEBUG'
+            );
+        }
+
+        return $curadas;
     }
 
     /**
