@@ -94,10 +94,14 @@ class ZipnovaService
     }
 
     /**
-     * Curado de opciones antes de mostrarlas al comprador:
-     * 1) Deduplica por (carrier + eta + code), quedándose con la de menor precio.
-     *    Incluir el code (service_type) evita fusionar una opción "a domicilio"
-     *    con una "punto de retiro" del mismo carrier que comparta plazo estimado.
+     * Curado de opciones antes de mostrarlas al comprador. Se aplica por
+     * separado a las opciones "a domicilio" (standard_delivery y similares)
+     * y a las de "punto de retiro" (pickup_point) — así el límite de
+     * self::MAX_SHIPPING_OPTIONS de un grupo no le come el cupo al otro
+     * (el checkout muestra ambos grupos en pestañas separadas).
+     *
+     * Por grupo:
+     * 1) Deduplica por (carrier + eta), quedándose con la de menor precio.
      * 2) Ordena por precio ascendente.
      * 3) Limita a self::MAX_SHIPPING_OPTIONS.
      *
@@ -117,12 +121,46 @@ class ZipnovaService
             );
         }
 
+        $domicilio = [];
+        $puntoRetiro = [];
+        foreach ($options as $option) {
+            if (($option['code'] ?? '') === 'pickup_point') {
+                $puntoRetiro[] = $option;
+            } else {
+                $domicilio[] = $option;
+            }
+        }
+
+        $curadas = array_merge(
+            $this->deduplicarOrdenarLimitar($domicilio),
+            $this->deduplicarOrdenarLimitar($puntoRetiro)
+        );
+
+        if (defined('ZIPNOVA_DEBUG') && ZIPNOVA_DEBUG) {
+            logZipnova(
+                'CURADO final (' . count($curadas) . " opciones, máx " . self::MAX_SHIPPING_OPTIONS . " por grupo domicilio/punto de retiro):\n"
+                . json_encode($curadas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
+                'DEBUG'
+            );
+        }
+
+        return $curadas;
+    }
+
+    /**
+     * Deduplica por (carrier + eta) quedándose con el precio más bajo, ordena
+     * ascendente por precio y limita a self::MAX_SHIPPING_OPTIONS.
+     *
+     * @param array<int, array<string, mixed>> $options
+     * @return array<int, array<string, mixed>>
+     */
+    private function deduplicarOrdenarLimitar(array $options): array
+    {
         $masBaratoPorClave = [];
         foreach ($options as $option) {
             $carrier = mb_strtolower(trim((string)($option['carrier'] ?? '')));
             $eta = mb_strtolower(trim((string)($option['eta'] ?? '')));
-            $code = mb_strtolower(trim((string)($option['code'] ?? '')));
-            $clave = $carrier . '|' . $eta . '|' . $code;
+            $clave = $carrier . '|' . $eta;
 
             if (!isset($masBaratoPorClave[$clave]) || (float)$option['price'] < (float)$masBaratoPorClave[$clave]['price']) {
                 $masBaratoPorClave[$clave] = $option;
@@ -132,17 +170,7 @@ class ZipnovaService
         $deduplicadas = array_values($masBaratoPorClave);
         usort($deduplicadas, static fn (array $a, array $b): int => $a['price'] <=> $b['price']);
 
-        $curadas = array_slice($deduplicadas, 0, self::MAX_SHIPPING_OPTIONS);
-
-        if (defined('ZIPNOVA_DEBUG') && ZIPNOVA_DEBUG) {
-            logZipnova(
-                'CURADO final (' . count($curadas) . '/' . self::MAX_SHIPPING_OPTIONS . " opciones):\n"
-                . json_encode($curadas, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT),
-                'DEBUG'
-            );
-        }
-
-        return $curadas;
+        return array_slice($deduplicadas, 0, self::MAX_SHIPPING_OPTIONS);
     }
 
     /**

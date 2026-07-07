@@ -64,4 +64,23 @@ final class ZipnovaCurarOpcionesTest extends TestCase
 
         $this->assertCount(ZipnovaService::MAX_SHIPPING_OPTIONS, $curadas);
     }
+
+    public function testElLimiteEsPorGrupoYNoLeQuitaCupoAlOtroGrupo(): void
+    {
+        $opciones = [];
+        for ($i = 0; $i < 4; $i++) {
+            $opciones[] = $this->opt('CarrierDomicilio' . $i, $i . ' días hábiles', 1000.0 + $i, 'standard_delivery');
+        }
+        for ($i = 0; $i < 2; $i++) {
+            $opciones[] = $this->opt('CarrierPickup' . $i, $i . ' días hábiles', 2000.0 + $i, 'pickup_point');
+        }
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $codes = array_count_values(array_column($curadas, 'code'));
+        $this->assertSame(ZipnovaService::MAX_SHIPPING_OPTIONS, $codes['standard_delivery']);
+        $this->assertSame(2, $codes['pickup_point']);
+        $this->assertCount(ZipnovaService::MAX_SHIPPING_OPTIONS + 2, $curadas);
+    }
 }

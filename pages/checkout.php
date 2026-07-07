@@ -145,9 +145,16 @@ $checkoutBootstrap = [
                         <div class="mt-6 border-t border-cream pt-6" data-shipping-options-wrap>
                             <h3 class="text-sm font-extrabold text-dark mb-3">Opciones de envío</h3>
                             <p class="text-sm text-earth" data-shipping-placeholder>Completá CP, ciudad y provincia para cotizar.</p>
-                            <div class="hidden space-y-2 mt-3" data-shipping-options></div>
                             <p class="hidden text-sm text-accent mt-2" data-shipping-error></p>
                             <p class="hidden text-sm text-earth mt-2" data-shipping-loading>Cotizando envío…</p>
+
+                            <div class="hidden flex gap-2 mt-3 mb-3" data-shipping-tabs>
+                                <button type="button" class="flex-1 h-10 rounded-full text-sm font-bold border border-cream text-dark hover:border-primary transition" data-shipping-tab="domicilio">Envío a domicilio</button>
+                                <button type="button" class="flex-1 h-10 rounded-full text-sm font-bold border border-cream text-dark hover:border-primary transition" data-shipping-tab="retiro">Retiro</button>
+                            </div>
+
+                            <div class="hidden space-y-2" data-shipping-options-domicilio></div>
+                            <div class="hidden space-y-2" data-shipping-options-retiro></div>
 
                             <div class="hidden mt-4 rounded-xl border border-cream p-3" data-pickup-point-wrap>
                                 <p class="text-sm font-extrabold text-dark mb-2">Elegí el punto de retiro</p>
