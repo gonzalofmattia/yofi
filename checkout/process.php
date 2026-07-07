@@ -12,6 +12,7 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../src/php/db.php';
 require_once __DIR__ . '/../src/php/auth.php';
 require_once __DIR__ . '/../src/php/stock_reservation.php';
+require_once __DIR__ . '/../src/php/shipping.php';
 ob_clean();
 
 header('Content-Type: application/json; charset=utf-8');
@@ -93,6 +94,15 @@ $metodoPago = trim((string)($data['payment']['method'] ?? 'transferencia'));
 $shippingCarrier = trim((string)($data['shipping_carrier'] ?? ''));
 $shippingEta = trim((string)($data['shipping_eta'] ?? ''));
 $shippingMeta = isset($data['shipping_meta']) && is_array($data['shipping_meta']) ? $data['shipping_meta'] : null;
+
+$errorPuntoRetiro = validar_punto_retiro_seleccionado($shippingMethodCode, $shippingMeta);
+if ($errorPuntoRetiro !== null) {
+    checkout_json([
+        'success' => false,
+        'message' => $errorPuntoRetiro,
+        'error_code' => 'missing_pickup_point',
+    ], 400);
+}
 
 $missing = [];
 if ($nombre === '') {
