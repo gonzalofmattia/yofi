@@ -9,9 +9,12 @@
     var shippingState = {
         options: [],
         selected: null,
+        selectedPickupPoint: null,
+        activeTab: 'domicilio',
         quoting: false,
         quoted: false,
     };
+    var shippingGroups = { domicilio: [], retiro: [] };
     var paymentMethod = 'mercadopago';
     var paymentMethodLabel = 'Mercado Pago';
     var quoteTimer = null;
@@ -147,6 +150,10 @@
             showBanner('Seleccioná una opción de envío', 'warning');
             return false;
         }
+        if (shippingState.selected.code === 'pickup_point' && !shippingState.selectedPickupPoint) {
+            showBanner('Elegí un punto de retiro para continuar.', 'warning');
+            return false;
+        }
         hideBanner();
         return true;
     }
@@ -200,50 +207,143 @@
         var reviewShip = document.querySelector('[data-checkout-review-shipping]');
         if (reviewShip && shippingState.selected) {
             var f = readForm();
+            var puntoHtml = shippingState.selectedPickupPoint
+                ? '<p><strong>Punto de retiro:</strong> ' + escapeHtml(shippingState.selectedPickupPoint.description || '') +
+                    ' — ' + escapeHtml(shippingState.selectedPickupPoint.address || '') + '</p>'
+                : '';
             reviewShip.innerHTML = '<p><strong>Envío:</strong> ' + escapeHtml(shippingState.selected.carrier || shippingState.selected.label) +
                 ' — ' + escapeHtml(shippingState.selected.eta || '') + '</p>' +
+                puntoHtml +
                 '<p><strong>Dirección:</strong> ' + escapeHtml(f.address) + ', ' + escapeHtml(f.city) + ', ' + escapeHtml(f.province) + ' (' + escapeHtml(f.zip) + ')</p>';
         }
     }
 
+    var TAB_BTN_ACTIVE = 'flex-1 h-10 rounded-full text-sm font-bold bg-dark text-white transition';
+    var TAB_BTN_INACTIVE = 'flex-1 h-10 rounded-full text-sm font-bold border border-cream text-dark hover:border-primary transition';
+
+    function splitShippingOptions(opciones) {
+        var domicilio = [];
+        var retiro = [];
+        (opciones || []).forEach(function (opt) {
+            if (opt.code === 'pickup_point' || opt.code === 'pickup') {
+                retiro.push(opt);
+            } else {
+                domicilio.push(opt);
+            }
+        });
+        return { domicilio: domicilio, retiro: retiro };
+    }
+
+    function renderOptionsList(container, opts) {
+        if (!container) return;
+        container.innerHTML = opts.map(function (opt, idx) {
+            var id = 'ship-opt-' + (opt.code || 'x') + '-' + idx;
+            var label = (opt.carrier || opt.service || 'Envío') + (opt.eta ? ' · ' + opt.eta : '');
+            return '<label class="flex items-start gap-3 p-3 rounded-xl border border-cream cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-cream/40">' +
+                '<input type="radio" name="shipping_option" id="' + id + '" class="mt-1">' +
+                '<span class="flex-1"><span class="font-semibold block">' + escapeHtml(label) + '</span>' +
+                '<span class="text-sm text-earth">' + formatMoney(opt.price) + '</span></span></label>';
+        }).join('');
+
+        container.querySelectorAll('input[name="shipping_option"]').forEach(function (radio, idx) {
+            radio.addEventListener('change', function () {
+                shippingState.selected = opts[idx] || null;
+                renderPickupPoints(shippingState.selected);
+                updateSummary();
+            });
+        });
+    }
+
+    function setActiveTab(tab) {
+        var domicilioBtn = document.querySelector('[data-shipping-tab="domicilio"]');
+        var retiroBtn = document.querySelector('[data-shipping-tab="retiro"]');
+        var domicilioPanel = document.querySelector('[data-shipping-options-domicilio]');
+        var retiroPanel = document.querySelector('[data-shipping-options-retiro]');
+
+        shippingState.activeTab = tab;
+        if (domicilioBtn) domicilioBtn.className = tab === 'domicilio' ? TAB_BTN_ACTIVE : TAB_BTN_INACTIVE;
+        if (retiroBtn) retiroBtn.className = tab === 'retiro' ? TAB_BTN_ACTIVE : TAB_BTN_INACTIVE;
+        if (domicilioPanel) domicilioPanel.classList.toggle('hidden', tab !== 'domicilio');
+        if (retiroPanel) retiroPanel.classList.toggle('hidden', tab !== 'retiro');
+
+        var opts = tab === 'domicilio' ? shippingGroups.domicilio : shippingGroups.retiro;
+        var panel = tab === 'domicilio' ? domicilioPanel : retiroPanel;
+        var firstRadio = panel ? panel.querySelector('input[type="radio"]') : null;
+        if (firstRadio) firstRadio.checked = true;
+
+        shippingState.selected = (opts && opts.length) ? opts[0] : null;
+        renderPickupPoints(shippingState.selected);
+        updateSummary();
+    }
+
     function renderShippingOptions(opciones) {
-        var wrap = document.querySelector('[data-shipping-options]');
         var placeholder = document.querySelector('[data-shipping-placeholder]');
         var errEl = document.querySelector('[data-shipping-error]');
-        if (!wrap) return;
+        var tabsEl = document.querySelector('[data-shipping-tabs]');
+        var domicilioPanel = document.querySelector('[data-shipping-options-domicilio]');
+        var retiroPanel = document.querySelector('[data-shipping-options-retiro]');
 
         if (errEl) errEl.classList.add('hidden');
         if (!opciones || !opciones.length) {
-            wrap.classList.add('hidden');
+            if (tabsEl) tabsEl.classList.add('hidden');
+            if (domicilioPanel) domicilioPanel.classList.add('hidden');
+            if (retiroPanel) retiroPanel.classList.add('hidden');
             if (placeholder) {
                 placeholder.classList.remove('hidden');
                 placeholder.textContent = 'No hay opciones de envío para este CP.';
             }
             shippingState.selected = null;
+            renderPickupPoints(null);
             updateSummary();
             return;
         }
 
         if (placeholder) placeholder.classList.add('hidden');
+
+        shippingGroups = splitShippingOptions(opciones);
+        renderOptionsList(domicilioPanel, shippingGroups.domicilio);
+        renderOptionsList(retiroPanel, shippingGroups.retiro);
+
+        var showTabs = shippingGroups.domicilio.length > 0 && shippingGroups.retiro.length > 0;
+        if (tabsEl) tabsEl.classList.toggle('hidden', !showTabs);
+
+        setActiveTab(shippingGroups.domicilio.length ? 'domicilio' : 'retiro');
+    }
+
+    function renderPickupPoints(option) {
+        var wrap = document.querySelector('[data-pickup-point-wrap]');
+        var list = document.querySelector('[data-pickup-point-options]');
+        var errEl = document.querySelector('[data-pickup-point-error]');
+        if (!wrap || !list) return;
+
+        shippingState.selectedPickupPoint = null;
+        if (errEl) errEl.classList.add('hidden');
+
+        var puntos = (option && option.code === 'pickup_point' && Array.isArray(option.pickup_points))
+            ? option.pickup_points : [];
+
+        if (!puntos.length) {
+            wrap.classList.add('hidden');
+            list.innerHTML = '';
+            return;
+        }
+
         wrap.classList.remove('hidden');
-        wrap.innerHTML = opciones.map(function (opt, idx) {
-            var id = 'ship-opt-' + idx;
-            var label = (opt.carrier || opt.service || 'Envío') + (opt.eta ? ' · ' + opt.eta : '');
+        list.innerHTML = puntos.map(function (p, idx) {
+            var id = 'pickup-point-' + idx;
             return '<label class="flex items-start gap-3 p-3 rounded-xl border border-cream cursor-pointer hover:border-primary has-[:checked]:border-primary has-[:checked]:bg-cream/40">' +
-                '<input type="radio" name="shipping_option" value="' + idx + '" id="' + id + '" class="mt-1"' + (idx === 0 ? ' checked' : '') + '>' +
-                '<span class="flex-1"><span class="font-semibold block">' + escapeHtml(label) + '</span>' +
-                '<span class="text-sm text-earth">' + formatMoney(opt.price) + '</span></span></label>';
+                '<input type="radio" name="pickup_point" value="' + idx + '" id="' + id + '" class="mt-1">' +
+                '<span class="flex-1"><span class="font-semibold block">' + escapeHtml(p.description || '') + '</span>' +
+                '<span class="text-sm text-earth">' + escapeHtml(p.address || '') + '</span></span></label>';
         }).join('');
 
-        shippingState.selected = opciones[0];
-        wrap.querySelectorAll('input[name="shipping_option"]').forEach(function (radio) {
+        list.querySelectorAll('input[name="pickup_point"]').forEach(function (radio) {
             radio.addEventListener('change', function () {
-                var i = parseInt(radio.value, 10);
-                shippingState.selected = opciones[i] || null;
+                shippingState.selectedPickupPoint = puntos[parseInt(radio.value, 10)] || null;
+                if (errEl) errEl.classList.add('hidden');
                 updateSummary();
             });
         });
-        updateSummary();
     }
 
     function requestQuote() {
@@ -331,6 +431,11 @@
                 carrier_id: sel.carrier_id || null,
                 logistic_type: sel.logistic_type || '',
                 service: sel.service || '',
+                pickup_point: (sel.code === 'pickup_point' && shippingState.selectedPickupPoint) ? {
+                    point_id: shippingState.selectedPickupPoint.point_id,
+                    description: shippingState.selectedPickupPoint.description,
+                    address: shippingState.selectedPickupPoint.address,
+                } : null,
             },
         };
     }
@@ -695,6 +800,12 @@
         updateSummary();
         loadPaymentMethods();
         initLoginCodeCheck();
+
+        document.querySelectorAll('[data-shipping-tab]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                setActiveTab(btn.getAttribute('data-shipping-tab'));
+            });
+        });
 
         ['co-zip', 'co-city', 'co-province'].forEach(function (id) {
             var el = document.getElementById(id);

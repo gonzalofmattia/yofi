@@ -1,0 +1,119 @@
+<?php
+
+declare(strict_types=1);
+
+use PHPUnit\Framework\TestCase;
+
+require_once __DIR__ . '/../../src/php/shipping.php';
+
+final class ZipnovaCurarOpcionesTest extends TestCase
+{
+    private function opt(string $carrier, string $eta, float $price, string $code = 'standard_delivery'): array
+    {
+        return [
+            'carrier' => $carrier,
+            'service' => 'Estándar',
+            'price' => $price,
+            'eta' => $eta,
+            'code' => $code,
+            'logistic_type' => 'crossdock',
+            'carrier_id' => 1,
+        ];
+    }
+
+    public function testNoFusionaOpcionesConMismoCarrierYEtaPeroDistintoCode(): void
+    {
+        $opciones = [
+            $this->opt('OCA', '3 a 4 días hábiles', 8600.0, 'standard_delivery'),
+            $this->opt('OCA', '3 a 4 días hábiles', 8800.0, 'pickup_point'),
+        ];
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $this->assertCount(2, $curadas);
+        $codes = array_column($curadas, 'code');
+        $this->assertContains('standard_delivery', $codes);
+        $this->assertContains('pickup_point', $codes);
+    }
+
+    public function testSigueDeduplicandoMismoCarrierEtaYCode(): void
+    {
+        $opciones = [
+            $this->opt('Correo Argentino', '5 a 6 días hábiles', 17496.0),
+            $this->opt('Correo Argentino', '5 a 6 días hábiles', 10380.0),
+            $this->opt('Correo Argentino', '5 a 6 días hábiles', 19633.0),
+        ];
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $this->assertCount(1, $curadas);
+        $this->assertSame(10380.0, $curadas[0]['price']);
+    }
+
+    public function testSigueLimitandoAMaxShippingOptions(): void
+    {
+        $opciones = [];
+        for ($i = 0; $i < 5; $i++) {
+            $opciones[] = $this->opt('Carrier' . $i, $i . ' días hábiles', 1000.0 + $i);
+        }
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $this->assertCount(ZipnovaService::MAX_SHIPPING_OPTIONS, $curadas);
+    }
+
+    public function testElLimiteEsPorGrupoYNoLeQuitaCupoAlOtroGrupo(): void
+    {
+        $opciones = [];
+        for ($i = 0; $i < 4; $i++) {
+            $opciones[] = $this->opt('CarrierDomicilio' . $i, $i . ' días hábiles', 1000.0 + $i, 'standard_delivery');
+        }
+        for ($i = 0; $i < 2; $i++) {
+            $opciones[] = $this->opt('CarrierPickup' . $i, $i . ' días hábiles', 2000.0 + $i, 'pickup_point');
+        }
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $codes = array_count_values(array_column($curadas, 'code'));
+        $this->assertSame(ZipnovaService::MAX_SHIPPING_OPTIONS, $codes['standard_delivery']);
+        $this->assertSame(2, $codes['pickup_point']);
+        $this->assertCount(ZipnovaService::MAX_SHIPPING_OPTIONS + 2, $curadas);
+    }
+
+    public function testDeduplicaPuntoRetiroSoloPorCarrierIgnorandoEta(): void
+    {
+        $opciones = [
+            $this->opt('Correo Argentino', '5 a 6 días hábiles', 9770.0, 'pickup_point'),
+            $this->opt('Correo Argentino', '6 a 9 días hábiles', 11908.0, 'pickup_point'),
+            $this->opt('OCA', '6 a 7 días hábiles', 10952.0, 'pickup_point'),
+        ];
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $this->assertCount(2, $curadas);
+        $porCarrier = [];
+        foreach ($curadas as $opcion) {
+            $porCarrier[$opcion['carrier']] = $opcion;
+        }
+        $this->assertSame(9770.0, $porCarrier['Correo Argentino']['price']);
+        $this->assertSame(10952.0, $porCarrier['OCA']['price']);
+    }
+
+    public function testNoAplicaDedupePorSoloCarrierADomicilio(): void
+    {
+        $opciones = [
+            $this->opt('OCA', '3 a 4 días hábiles', 8600.0, 'standard_delivery'),
+            $this->opt('OCA', '6 a 7 días hábiles', 10952.0, 'standard_delivery'),
+        ];
+
+        $service = new ZipnovaService();
+        $curadas = $service->curarOpcionesDesdeArray($opciones);
+
+        $this->assertCount(2, $curadas);
+    }
+}
