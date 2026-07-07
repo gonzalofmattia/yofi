@@ -25,6 +25,12 @@ if (!is_array($items)) {
     $items = [];
 }
 
+$shippingMeta = json_decode((string)($orden['shipping_meta'] ?? '[]'), true);
+if (!is_array($shippingMeta)) {
+    $shippingMeta = [];
+}
+$puntoRetiro = is_array($shippingMeta['pickup_point'] ?? null) ? $shippingMeta['pickup_point'] : null;
+
 $historial = mysqli_query($con, "
     SELECT estado_anterior, estado_nuevo, fecha_cambio, usuario_admin, notas, tracking_number
     FROM tbl_ordenes_historial
@@ -113,6 +119,12 @@ include __DIR__ . '/../header.php';
                 <p class="mb-1"><?= htmlspecialchars($orden['ciudad'] . ', ' . $orden['provincia'] . ' (' . $orden['codigo_postal'] . ')', ENT_QUOTES, 'UTF-8') ?></p>
                 <?php if ($orden['shipping_carrier']): ?>
                     <p class="mb-0 small text-muted">Transporte: <?= htmlspecialchars($orden['shipping_carrier'], ENT_QUOTES, 'UTF-8') ?> — <?= htmlspecialchars((string)$orden['shipping_eta'], ENT_QUOTES, 'UTF-8') ?></p>
+                <?php endif; ?>
+                <?php if ($puntoRetiro): ?>
+                    <p class="mb-0 small text-muted">
+                        Punto de retiro: <?= htmlspecialchars((string)($puntoRetiro['description'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                        <?php if (!empty($puntoRetiro['address'])): ?><br><?= htmlspecialchars((string)$puntoRetiro['address'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
+                    </p>
                 <?php endif; ?>
             </div>
         </div>
