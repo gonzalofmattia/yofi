@@ -425,3 +425,11 @@ Antes de abrir el PR y mergear, verificar:
 - [ ] Mensaje del commit sigue la convención semántica
 - [ ] PR tiene descripción breve de qué cambia y por qué
 
+---
+
+## 14. Convención de comandos git
+
+Cuando haga falta correr git en una carpeta distinta al directorio de trabajo
+actual, usar `git -C "<ruta>" <comando>` en vez de `cd "<ruta>" && git <comando>`.
+Evita el prompt de seguridad de cambio de directorio.
+
